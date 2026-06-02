@@ -2,6 +2,7 @@ package com.willfp.ecoenchants.enchant
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.willfp.eco.core.config.base.LangYml
+import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.drops.DropQueue
 import com.willfp.eco.core.fast.fast
 import com.willfp.eco.core.gui.GUIComponent
@@ -60,7 +61,7 @@ object EnchantGUI : Listener {
         allEnchantsSorted = EcoEnchants.values().sortForGui()
 
         menu = menu(plugin.configYml.getInt("enchant-gui.rows")) {
-            title = plugin.configYml.getFormattedString("enchant-gui.title")
+            title = getConfiguredGuiTitle("enchant-gui")
 
             allowChangingHeldItem()
 
@@ -76,11 +77,7 @@ object EnchantGUI : Listener {
             setSlot(
                 plugin.configYml.getInt("enchant-gui.info.row"),
                 plugin.configYml.getInt("enchant-gui.info.column"),
-                slot(
-                    ItemStackBuilder(Items.lookup(plugin.configYml.getString("enchant-gui.info.item")))
-                        .addLoreLines(plugin.configYml.getStrings("enchant-gui.info.lore"))
-                        .build()
-                )
+                slot(buildGuiItem("enchant-gui.info"))
             )
 
             val captiveRow = plugin.configYml.getInt("enchant-gui.item-row")
@@ -110,11 +107,10 @@ object EnchantGUI : Listener {
                 val filteredEnchants = if (groupId != null) {
                     val groupBy = plugin.configYml.getString("enchant-gui.group-by")
                     baseEnchants.filter { enchantment ->
-                        val wrapped = enchantment.wrap()
                         when (groupBy) {
-                            "type" -> wrapped.type.id == groupId
-                            "rarity" -> wrapped.enchantmentRarity.id == groupId
-                            "target" -> wrapped is EcoEnchant && wrapped.targets.any { it.id == groupId }
+                            "type" -> enchantment.type.id == groupId
+                            "rarity" -> enchantment.enchantmentRarity.id == groupId
+                            "target" -> enchantment.targets.any { it.id == groupId }
                             else -> true
                         }
                     }
@@ -175,12 +171,7 @@ object EnchantGUI : Listener {
                 setSlot(
                     plugin.configYml.getInt("enchant-gui.close-button.row"),
                     plugin.configYml.getInt("enchant-gui.close-button.column"),
-                    slot(
-                        ItemStackBuilder(Items.lookup(plugin.configYml.getString("enchant-gui.close-button.item")))
-                            .setDisplayName(plugin.configYml.getFormattedString("enchant-gui.close-button.name"))
-                            .addLoreLines(plugin.configYml.getStrings("enchant-gui.close-button.lore"))
-                            .build()
-                    ) {
+                    slot(buildGuiItem("enchant-gui.close-button")) {
                         onLeftClick { event, _ -> event.whoClicked.closeInventory() }
                     }
                 )
@@ -192,11 +183,7 @@ object EnchantGUI : Listener {
                 setSlot(
                     plugin.configYml.getInt("enchant-gui.back-button.row"),
                     plugin.configYml.getInt("enchant-gui.back-button.column"),
-                    slot(
-                        ItemStackBuilder(Items.lookup(plugin.configYml.getString("enchant-gui.back-button.item")))
-                            .addLoreLines(plugin.configYml.getStrings("enchant-gui.back-button.lore"))
-                            .build()
-                    ) {
+                    slot(buildGuiItem("enchant-gui.back-button")) {
                         onLeftClick { event, _ ->
                             val groupGui = groupMenu ?: return@onLeftClick
                             val player = event.whoClicked as Player
@@ -241,7 +228,7 @@ object EnchantGUI : Listener {
         // Build the group selection menu (only when grouped mode is enabled)
         if (plugin.configYml.getBool("enchant-gui.grouped")) {
             groupMenu = menu(plugin.configYml.getInt("group-gui.rows")) {
-                title = plugin.configYml.getFormattedString("group-gui.title")
+                title = getConfiguredGuiTitle("group-gui")
 
                 setMask(
                     FillerMask(
@@ -279,11 +266,7 @@ object EnchantGUI : Listener {
                     setSlot(
                         config.getInt("row"),
                         config.getInt("column"),
-                        slot(
-                            ItemStackBuilder(Items.lookup(config.getString("item")))
-                                .addLoreLines(config.getStrings("lore"))
-                                .build()
-                        ) {
+                        slot(buildGuiItem(config)) {
                             onLeftClick { event, _ ->
                                 openGroupGUI(event.whoClicked as Player, groupId)
                             }
@@ -306,7 +289,7 @@ object EnchantGUI : Listener {
 
         adminMenu = if (plugin.configYml.getBool("admin-gui.enabled")) {
             menu(plugin.configYml.getInt("admin-gui.rows")) {
-                title = plugin.configYml.getFormattedString("admin-gui.title")
+                title = getConfiguredGuiTitle("admin-gui")
 
                 setMask(
                     FillerMask(
@@ -324,11 +307,7 @@ object EnchantGUI : Listener {
                     setSlot(
                         plugin.configYml.getInt("admin-gui.back-button.row"),
                         plugin.configYml.getInt("admin-gui.back-button.column"),
-                        slot(
-                            ItemStackBuilder(Items.lookup(plugin.configYml.getString("admin-gui.back-button.item")))
-                                .addLoreLines(plugin.configYml.getStrings("admin-gui.back-button.lore"))
-                                .build()
-                        ) {
+                        slot(buildGuiItem("admin-gui.back-button")) {
                             onLeftClick { event, _ ->
                                 openGUI(event.whoClicked as Player)
                             }
@@ -340,11 +319,7 @@ object EnchantGUI : Listener {
                     setSlot(
                         plugin.configYml.getInt("admin-gui.close-button.row"),
                         plugin.configYml.getInt("admin-gui.close-button.column"),
-                        slot(
-                            ItemStackBuilder(Items.lookup(plugin.configYml.getString("admin-gui.close-button.item")))
-                                .addLoreLines(plugin.configYml.getStrings("admin-gui.close-button.lore"))
-                                .build()
-                        ) {
+                        slot(buildGuiItem("admin-gui.close-button")) {
                             onLeftClick { event, _ -> event.whoClicked.closeInventory() }
                         }
                     )
@@ -563,9 +538,7 @@ object EnchantGUI : Listener {
             }
 
             return slot(
-                ItemStackBuilder(Items.lookup(plugin.configYml.getString("$configPath.item")))
-                    .addLoreLines(plugin.configYml.getStrings("$configPath.lore"))
-                    .build()
+                buildGuiItem(configPath)
             ) {
                 onLeftClick { event, _ ->
                     openAdminGUI(event.whoClicked as Player)
@@ -588,9 +561,7 @@ object EnchantGUI : Listener {
             }
 
             return slot(
-                ItemStackBuilder(Items.lookup(plugin.configYml.getString("${tool.configPath}.item")))
-                    .addLoreLines(plugin.configYml.getStrings("${tool.configPath}.lore"))
-                    .build()
+                buildGuiItem(tool.configPath)
             ) {
                 onLeftClick { event, _ ->
                     runAdminTool(event.whoClicked as Player, tool)
