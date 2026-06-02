@@ -300,8 +300,18 @@ object EnchantGUI : Listener {
                     )
                 )
 
-                addAdminTool(AdminTool.RELOAD)
-                addAdminTool(AdminTool.RANDOM_BOOK)
+                for (tool in AdminTool.entries) {
+                    if (!plugin.configYml.getBool("${tool.configPath}.enabled")) {
+                        continue
+                    }
+
+                    addComponent(
+                        MenuLayer.TOP,
+                        plugin.configYml.getInt("${tool.configPath}.row"),
+                        plugin.configYml.getInt("${tool.configPath}.column"),
+                        AdminToolButton(tool)
+                    )
+                }
 
                 if (plugin.configYml.getBool("admin-gui.back-button.enabled")) {
                     setSlot(
@@ -379,19 +389,6 @@ object EnchantGUI : Listener {
                 }
             }
         }.open(player)
-    }
-
-    private fun Menu.addAdminTool(tool: AdminTool) {
-        if (!plugin.configYml.getBool("${tool.configPath}.enabled")) {
-            return
-        }
-
-        addComponent(
-            MenuLayer.TOP,
-            plugin.configYml.getInt("${tool.configPath}.row"),
-            plugin.configYml.getInt("${tool.configPath}.column"),
-            AdminToolButton(tool)
-        )
     }
 
     private fun openAdminGUI(player: Player) {
@@ -822,12 +819,34 @@ private fun Player.sendLangMessage(key: String, vararg replacements: Pair<String
 private fun getGroupDisplayName(groupId: String): String {
     val groupBy = plugin.configYml.getString("enchant-gui.group-by")
 
-    return when (groupBy) {
-        "type" -> EnchantmentTypes[groupId]?.displayName
+    return getConfiguredGroupDisplayName(groupId) ?: when (groupBy) {
+        "type" -> EnchantmentTypes[groupId]?.id?.toDisplayName()
         "rarity" -> EnchantmentRarities[groupId]?.displayName
         "target" -> EnchantmentTargets[groupId]?.displayName
         else -> null
     } ?: groupId
+}
+
+private fun getConfiguredGroupDisplayName(groupId: String): String? {
+    val config = plugin.configYml.getSubsections("group-gui.groups")
+        .firstOrNull { it.getString("id") == groupId }
+        ?: return null
+
+    return when {
+        config.has("name-key") -> plugin.langYml.getFormattedString(config.getString("name-key"))
+        config.has("name") -> config.getString("name").formatEco()
+        else -> null
+    }
+}
+
+private fun String.toDisplayName(): String {
+    return this.split('_', '-')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { part ->
+            part.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase(Locale.ROOT) else char.toString()
+            }
+        }
 }
 
 private fun Player.hasAdminToolsPermission(): Boolean {
