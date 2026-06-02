@@ -2,13 +2,13 @@ package com.willfp.ecoenchants.enchant
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.willfp.eco.core.config.base.LangYml
+import com.willfp.eco.core.drops.DropQueue
 import com.willfp.eco.core.fast.fast
 import com.willfp.eco.core.gui.GUIComponent
 import com.willfp.eco.core.gui.menu
 import com.willfp.eco.core.gui.menu.Menu
 import com.willfp.eco.core.gui.menu.MenuLayer
 import com.willfp.eco.core.gui.page.Page
-import com.willfp.eco.core.gui.page.PageChanger
 import com.willfp.eco.core.gui.slot
 import com.willfp.eco.core.gui.slot.ConfigSlot
 import com.willfp.eco.core.gui.slot.FillerMask
@@ -19,16 +19,21 @@ import com.willfp.eco.core.items.Items
 import com.willfp.eco.core.items.builder.EnchantedBookBuilder
 import com.willfp.eco.core.items.builder.ItemStackBuilder
 import com.willfp.eco.core.items.isEcoEmpty
+import com.willfp.eco.util.NumberUtils
+import com.willfp.eco.util.StringUtils
 import com.willfp.eco.util.formatEco
 import com.willfp.eco.util.lineWrap
+import com.willfp.eco.util.toNiceString
 import com.willfp.ecoenchants.display.EnchantSorter.sortForDisplay
 import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
 import com.willfp.ecoenchants.plugin
+import com.willfp.ecoenchants.rarity.EnchantmentRarities
 import com.willfp.ecoenchants.target.EnchantmentTargets.applicableEnchantments
+import com.willfp.ecoenchants.target.EnchantmentTargets
+import com.willfp.ecoenchants.type.EnchantmentTypes
 import org.bukkit.Material
-import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -36,24 +41,23 @@ import org.bukkit.event.player.PlayerKickEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
-import com.willfp.ecoenchants.rarity.EnchantmentRarities
-import com.willfp.ecoenchants.type.EnchantmentTypes
-import com.willfp.ecoenchants.target.EnchantmentTargets
-import kotlin.math.ceil
+import java.util.Locale
 import java.util.UUID
+import kotlin.math.ceil
 
 object EnchantGUI : Listener {
     private lateinit var menu: Menu
     private var groupMenu: Menu? = null
+    private var adminMenu: Menu? = null
     private val enchantInfoMenus = Caffeine.newBuilder().build<Pair<EcoEnchant, Int>, Menu>()
-    private var allEnchantsSorted: List<Enchantment> = emptyList()
+    private var allEnchantsSorted: List<EcoEnchant> = emptyList()
     private val returnedOnDisconnect = mutableSetOf<UUID>()
 
     internal fun reload() {
         cachedEnchantmentSlots.invalidateAll()
         applicableEnchantmentsSorted.invalidateAll()
         enchantInfoMenus.invalidateAll()
-        allEnchantsSorted = EcoEnchants.values().map { it.enchantment }.sortForDisplay()
+        allEnchantsSorted = EcoEnchants.values().sortForGui()
 
         menu = menu(plugin.configYml.getInt("enchant-gui.rows")) {
             title = plugin.configYml.getFormattedString("enchant-gui.title")
@@ -97,8 +101,8 @@ object EnchantGUI : Listener {
                 } else {
                     val currentEnchants = atCaptive.fast().enchants.keys
                     applicableEnchantmentsSorted.get(HashedItem.of(atCaptive)) {
-                        atCaptive.applicableEnchantments.map { it.enchantment }.sortForDisplay()
-                    }.filterNot { it in currentEnchants }
+                        atCaptive.applicableEnchantments.sortForGui()
+                    }.filterNot { it.enchantment in currentEnchants }
                 }
 
                 // Apply group filter if a groupId is set in menu state
@@ -149,19 +153,23 @@ object EnchantGUI : Listener {
                 pane
             )
 
-            for (direction in PageChanger.Direction.entries) {
-                val directionName = direction.name.lowercase()
+            for (direction in GuiPageDirection.entries) {
+                val directionName = direction.name.lowercase(Locale.ROOT)
 
                 addComponent(
                     MenuLayer.TOP,
                     plugin.configYml.getInt("enchant-gui.page-change.$directionName.row"),
                     plugin.configYml.getInt("enchant-gui.page-change.$directionName.column"),
-                    PageChanger(
-                        Items.lookup(plugin.configYml.getString("enchant-gui.page-change.$directionName.item")).item,
-                        direction
-                    )
+                    EnchantPageChanger(direction)
                 )
             }
+
+            addComponent(
+                MenuLayer.TOP,
+                plugin.configYml.getInt("enchant-gui.admin-tools.row"),
+                plugin.configYml.getInt("enchant-gui.admin-tools.column"),
+                AdminToolsButton()
+            )
 
             if (plugin.configYml.getBool("enchant-gui.close-button.enabled")) {
                 setSlot(
@@ -244,6 +252,13 @@ object EnchantGUI : Listener {
                     )
                 )
 
+                addComponent(
+                    MenuLayer.TOP,
+                    plugin.configYml.getInt("group-gui.admin-tools.row"),
+                    plugin.configYml.getInt("group-gui.admin-tools.column"),
+                    AdminToolsButton("group-gui.admin-tools")
+                )
+
                 // Add a clickable slot for each configured group
                 for (config in plugin.configYml.getSubsections("group-gui.groups")) {
                     val groupId = config.getString("id")
@@ -287,6 +302,64 @@ object EnchantGUI : Listener {
             }
         } else {
             groupMenu = null
+        }
+
+        adminMenu = if (plugin.configYml.getBool("admin-gui.enabled")) {
+            menu(plugin.configYml.getInt("admin-gui.rows")) {
+                title = plugin.configYml.getFormattedString("admin-gui.title")
+
+                setMask(
+                    FillerMask(
+                        MaskItems.fromItemNames(
+                            plugin.configYml.getStrings("admin-gui.mask.items")
+                        ),
+                        *plugin.configYml.getStrings("admin-gui.mask.pattern").toTypedArray()
+                    )
+                )
+
+                addAdminTool(AdminTool.RELOAD)
+                addAdminTool(AdminTool.RANDOM_BOOK)
+
+                if (plugin.configYml.getBool("admin-gui.back-button.enabled")) {
+                    setSlot(
+                        plugin.configYml.getInt("admin-gui.back-button.row"),
+                        plugin.configYml.getInt("admin-gui.back-button.column"),
+                        slot(
+                            ItemStackBuilder(Items.lookup(plugin.configYml.getString("admin-gui.back-button.item")))
+                                .addLoreLines(plugin.configYml.getStrings("admin-gui.back-button.lore"))
+                                .build()
+                        ) {
+                            onLeftClick { event, _ ->
+                                openGUI(event.whoClicked as Player)
+                            }
+                        }
+                    )
+                }
+
+                if (plugin.configYml.getBool("admin-gui.close-button.enabled")) {
+                    setSlot(
+                        plugin.configYml.getInt("admin-gui.close-button.row"),
+                        plugin.configYml.getInt("admin-gui.close-button.column"),
+                        slot(
+                            ItemStackBuilder(Items.lookup(plugin.configYml.getString("admin-gui.close-button.item")))
+                                .addLoreLines(plugin.configYml.getStrings("admin-gui.close-button.lore"))
+                                .build()
+                        ) {
+                            onLeftClick { event, _ -> event.whoClicked.closeInventory() }
+                        }
+                    )
+                }
+
+                for (config in plugin.configYml.getSubsections("admin-gui.custom-slots")) {
+                    setSlot(
+                        config.getInt("row"),
+                        config.getInt("column"),
+                        ConfigSlot(config)
+                    )
+                }
+            }
+        } else {
+            null
         }
     }
 
@@ -333,10 +406,90 @@ object EnchantGUI : Listener {
         }.open(player)
     }
 
+    private fun Menu.addAdminTool(tool: AdminTool) {
+        if (!plugin.configYml.getBool("${tool.configPath}.enabled")) {
+            return
+        }
+
+        addComponent(
+            MenuLayer.TOP,
+            plugin.configYml.getInt("${tool.configPath}.row"),
+            plugin.configYml.getInt("${tool.configPath}.column"),
+            AdminToolButton(tool)
+        )
+    }
+
+    private fun openAdminGUI(player: Player) {
+        val targetMenu = adminMenu ?: run {
+            player.sendLangMessage("admin-gui-disabled")
+            return
+        }
+
+        if (!player.hasAdminToolsPermission()) {
+            player.sendMessage(plugin.langYml.getMessage("no-permission"))
+            return
+        }
+
+        targetMenu.open(player)
+        player.sendLangMessage("opened-admin-gui")
+    }
+
+    private fun runAdminTool(player: Player, tool: AdminTool) {
+        if (!player.hasPermission(tool.permission)) {
+            player.sendMessage(plugin.langYml.getMessage("no-permission"))
+            return
+        }
+
+        player.playConfiguredSound("${tool.configPath}.sound")
+
+        when (tool) {
+            AdminTool.RELOAD -> reloadFromAdmin(player)
+            AdminTool.RANDOM_BOOK -> giveRandomBookToSelf(player)
+        }
+    }
+
+    private fun reloadFromAdmin(player: Player) {
+        player.closeInventory()
+
+        val message = plugin.langYml.getMessage("reloaded", StringUtils.FormatOption.WITHOUT_PLACEHOLDERS)
+        val time = plugin.reloadWithTime().toNiceString()
+
+        player.sendMessage(
+            message
+                .replace("%time%", time)
+                .replace("%count%", EcoEnchants.values().size.toString())
+        )
+    }
+
+    private fun giveRandomBookToSelf(player: Player) {
+        val enchantment = EcoEnchants.values().randomOrNull() ?: run {
+            player.sendMessage(plugin.langYml.getMessage("no-enchantments-found"))
+            return
+        }
+
+        val level = NumberUtils.randInt(1, enchantment.maximumLevel)
+
+        val item = EnchantedBookBuilder()
+            .addStoredEnchantment(enchantment.enchantment, level)
+            .build()
+
+        DropQueue(player)
+            .addItem(item)
+            .forceTelekinesis()
+            .push()
+
+        player.sendMessage(
+            plugin.langYml.getMessage("gave-random-book", StringUtils.FormatOption.WITHOUT_PLACEHOLDERS)
+                .replace("%player%", player.name)
+                .replace("%enchantment%", enchantment.getFormattedName(level))
+        )
+    }
+
     private fun openGroupGUI(player: Player, groupId: String) {
-        menu.open(player)
         menu.setState(player, "groupId", groupId)
         menu.setState(player, Page.PAGE_KEY, 1)
+        menu.open(player)
+        player.sendLangMessage("opened-enchant-group", "group" to getGroupDisplayName(groupId))
     }
 
     @EventHandler
@@ -350,12 +503,12 @@ object EnchantGUI : Listener {
     }
 
     private fun returnCaptiveItemsOnDisconnect(player: Player) {
-        if (returnCaptiveItems(player)) {
+        if (returnCaptiveItems(player, notify = false)) {
             returnedOnDisconnect.add(player.uniqueId)
         }
     }
 
-    private fun returnCaptiveItems(player: Player, sourceMenu: Menu? = null): Boolean {
+    private fun returnCaptiveItems(player: Player, sourceMenu: Menu? = null, notify: Boolean = true): Boolean {
         if (!::menu.isInitialized) {
             return false
         }
@@ -376,7 +529,87 @@ object EnchantGUI : Listener {
         }
 
         activeMenu.clearState(player)
+
+        if (notify) {
+            val returnedAmount = captiveItems.sumOf { it.amount }
+            val droppedAmount = overflow.values.sumOf { it.amount }
+
+            if (droppedAmount > 0) {
+                player.sendLangMessage(
+                    "returned-gui-items-with-overflow",
+                    "amount" to returnedAmount.toString(),
+                    "dropped" to droppedAmount.toString()
+                )
+            } else {
+                player.sendLangMessage(
+                    "returned-gui-items",
+                    "amount" to returnedAmount.toString()
+                )
+            }
+        }
+
         return true
+    }
+
+    private class AdminToolsButton(
+        private val configPath: String = "enchant-gui.admin-tools"
+    ) : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")
+                || !player.hasAdminToolsPermission()) {
+                return emptySlot
+            }
+
+            return slot(
+                ItemStackBuilder(Items.lookup(plugin.configYml.getString("$configPath.item")))
+                    .addLoreLines(plugin.configYml.getStrings("$configPath.lore"))
+                    .build()
+            ) {
+                onLeftClick { event, _ ->
+                    openAdminGUI(event.whoClicked as Player)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private class AdminToolButton(
+        private val tool: AdminTool
+    ) : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!player.hasPermission(tool.permission)) {
+                return emptySlot
+            }
+
+            return slot(
+                ItemStackBuilder(Items.lookup(plugin.configYml.getString("${tool.configPath}.item")))
+                    .addLoreLines(plugin.configYml.getStrings("${tool.configPath}.lore"))
+                    .build()
+            ) {
+                onLeftClick { event, _ ->
+                    runAdminTool(event.whoClicked as Player, tool)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private enum class AdminTool(
+        val configKey: String,
+        val permission: String
+    ) {
+        RELOAD("reload", "ecoenchants.command.reload"),
+        RANDOM_BOOK("random-book", "ecoenchants.command.giverandombook");
+
+        val configPath = "admin-gui.tools.$configKey"
     }
 }
 
@@ -408,7 +641,121 @@ private val cachedEnchantmentSlots = Caffeine.newBuilder()
     .build<Pair<EcoEnchant, Int>, Slot>()
 
 private val applicableEnchantmentsSorted = Caffeine.newBuilder()
-    .build<HashedItem, List<Enchantment>>()
+    .build<HashedItem, List<EcoEnchant>>()
+
+private enum class GuiPageDirection {
+    FORWARDS,
+    BACKWARDS
+}
+
+private class EnchantPageChanger(
+    private val direction: GuiPageDirection
+) : GUIComponent {
+    private val configPath = "enchant-gui.page-change.${direction.name.lowercase(Locale.ROOT)}"
+    private val emptySlot = slot(ItemStack(Material.AIR))
+
+    override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+        val maxPage = getMaxPage(player, menu)
+        val currentPage = menu.getPage(player).coerceAtLeast(1)
+
+        if (!canChangePage(currentPage, maxPage)) {
+            return emptySlot
+        }
+
+        val item = Items.lookup(
+            plugin.configYml.getString("$configPath.item")
+                .replacePagePlaceholders(currentPage, maxPage)
+        ).item
+
+        return slot(item) {
+            onLeftClick { event, _ ->
+                val clickedPlayer = event.whoClicked as Player
+                val clickedMaxPage = getMaxPage(clickedPlayer, menu)
+                val clickedPage = menu.getPage(clickedPlayer).coerceAtLeast(1)
+
+                if (!canChangePage(clickedPage, clickedMaxPage)) {
+                    return@onLeftClick
+                }
+
+                val nextPage = when (direction) {
+                    GuiPageDirection.FORWARDS -> clickedPage + 1
+                    GuiPageDirection.BACKWARDS -> clickedPage - 1
+                }
+
+                menu.setState(clickedPlayer, Page.PAGE_KEY, nextPage.coerceIn(1, clickedMaxPage))
+                clickedPlayer.playPageChangeSound(configPath)
+            }
+        }
+    }
+
+    override fun getRows() = 1
+    override fun getColumns() = 1
+
+    private fun canChangePage(currentPage: Int, maxPage: Int): Boolean {
+        return when (direction) {
+            GuiPageDirection.FORWARDS -> currentPage < maxPage
+            GuiPageDirection.BACKWARDS -> currentPage > 1 && maxPage > 1
+        }
+    }
+
+    private fun getMaxPage(player: Player, menu: Menu): Int {
+        val enchants = menu.getState<List<EcoEnchant>>(player, "enchants") ?: emptyList()
+        val perPage = plugin.configYml.getInt("enchant-gui.enchant-area.width") *
+                plugin.configYml.getInt("enchant-gui.enchant-area.height")
+
+        if (enchants.isEmpty() || perPage <= 0) {
+            return 0
+        }
+
+        return ceil(enchants.size.toDouble() / perPage).toInt()
+    }
+}
+
+private fun Collection<EcoEnchant>.sortForGui(): List<EcoEnchant> {
+    val byEnchantment = this.associateBy { it.enchantment }
+    return this.map { it.enchantment }.sortForDisplay()
+        .mapNotNull { byEnchantment[it] }
+}
+
+private fun String.replacePagePlaceholders(page: Int, maxPage: Int): String {
+    return this.replace("%page%", page.toString())
+        .replace("%max_page%", maxPage.toString())
+}
+
+private fun Player.hasAdminToolsPermission(): Boolean {
+    return this.hasPermission("ecoenchants.command.reload")
+            || this.hasPermission("ecoenchants.command.giverandombook")
+}
+
+private fun Player.playPageChangeSound(configPath: String) {
+    this.playConfiguredSound("$configPath.sound")
+}
+
+private fun Player.playConfiguredSound(soundPath: String) {
+    if (!plugin.configYml.has(soundPath)) {
+        return
+    }
+
+    val sound = plugin.configYml.getString(soundPath)
+    if (sound.isBlank()) {
+        return
+    }
+
+    val configPath = soundPath.removeSuffix(".sound")
+    val volume = if (plugin.configYml.has("$configPath.sound-volume")) {
+        plugin.configYml.getDouble("$configPath.sound-volume").toFloat()
+    } else {
+        1.0f
+    }
+
+    val pitch = if (plugin.configYml.has("$configPath.sound-pitch")) {
+        plugin.configYml.getDouble("$configPath.sound-pitch").toFloat()
+    } else {
+        1.0f
+    }
+
+    this.playSound(this.location, sound, volume, pitch)
+}
 
 private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
     return cachedEnchantmentSlots.get(this to level) {

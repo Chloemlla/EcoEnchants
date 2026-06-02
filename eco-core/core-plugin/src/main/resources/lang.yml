@@ -17,6 +17,12 @@ messages:
   invalid-enchantment: "&cInvalid enchantment!"
   added-enchant: "&fAdded &a%enchant%&f to &a%player%&f's held item!"
   removed-enchant: "&fRemoved &a%enchant%&f from &a%player%&f's held item!"
+  changed-enchant-page: "&fShowing enchantment page &a%page%&7/&a%max_page%&f."
+  opened-enchant-group: "&fShowing &a%group%&f enchantments."
+  returned-gui-items: "&fReturned &a%amount%&f item(s) from the enchant GUI."
+  returned-gui-items-with-overflow: "&fReturned &a%amount%&f item(s) from the enchant GUI. &e%dropped% item(s) dropped nearby because your inventory was full."
+  opened-admin-gui: "&fOpened the EcoEnchants admin tools."
+  admin-gui-disabled: "&cAdmin tools are disabled."
 
 
 all: "All"

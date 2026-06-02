@@ -147,13 +147,19 @@ enchant-gui:
   # Options for the page change buttons
   page-change:
     forwards:
-      item: arrow name:"&fNext Page" # The item. Will not show if on the last page.
+      item: arrow name:"&fNext Page &7(%page%/%max_page%)" # The item. Will not show if on the last page.
       row: 6
       column: 6
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
     backwards:
-      item: arrow name:"&fPrevious Page" # The item. Will not show if on the first page.
+      item: arrow name:"&fPrevious Page &7(%page%/%max_page%)" # The item. Will not show if on the first page.
       row: 6
       column: 4
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
 
   # Optional close button for the enchant GUI
   close-button:
