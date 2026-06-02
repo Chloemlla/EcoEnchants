@@ -629,11 +629,17 @@ private class EnchantmentScrollPane : GUIComponent {
                 "$configPath.lore-key"
         }
 
+        val loreKeyOverride = if (plugin.configYml.has(loreKeyPath)) {
+            plugin.configYml.getString(loreKeyPath)
+        } else {
+            null
+        }
+
         return slot(
             buildGuiItem(
                 configPath,
                 placeholders,
-                plugin.configYml.getString(loreKeyPath)
+                loreKeyOverride
             )
         )
     }
