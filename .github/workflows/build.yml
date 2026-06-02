@@ -53,15 +53,3 @@ jobs:
             !build/libs/*-javadoc.jar
           if-no-files-found: error
           retention-days: 14
-      - name: Automatic release
-        if: success()
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: ${{ steps.timestamp.outputs.timestamp }}
-          prerelease: false
-          title: "${{ steps.timestamp.outputs.repo_name }}-${{ steps.timestamp.outputs.short_sha }} Release"
-          files: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
-            !build/libs/*-javadoc.jar
