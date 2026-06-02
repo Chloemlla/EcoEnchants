@@ -64,6 +64,20 @@ gui:
         - "&7Put an item in the top middle slot"
         - "&f下方会显示可添加的附魔"
         - "&7Available enchantments appear below"
+    empty-results:
+      name: "&c没有可显示的附魔 / No Enchantments"
+      lore:
+        - "&7当前没有加载可浏览的附魔"
+        - "&8No enchantments are available to browse"
+      group-lore:
+        - "&7%group% 分组中没有可显示的附魔"
+        - "&8No enchantments are available in %group%"
+      with-item-lore:
+        - "&7这个物品没有可添加的附魔"
+        - "&8This item has no available enchantments"
+      with-item-and-group-lore:
+        - "&7这个物品没有可添加的 %group% 附魔"
+        - "&8This item has no available %group% enchantments"
     page-next:
       name: "&f下一页 / Next Page &7(%page%/%max_page%)"
       lore:
