@@ -593,13 +593,49 @@ private class EnchantmentScrollPane : GUIComponent {
 
         val enchants = menu.getState<List<EcoEnchant>>(player, "enchants") ?: return defaultSlot
         if (enchants.isEmpty()) {
-            return defaultSlot
+            return if (row == (rows + 1) / 2 && column == (columns + 1) / 2) {
+                getEmptyResultsSlot(player, menu)
+            } else {
+                defaultSlot
+            }
         }
 
         val enchant = enchants.getOrNull(index + size * (page - 1)) ?: return defaultSlot
 
         val displayLevel = if (plugin.configYml.getBool("enchantinfo.item.show-max-level")) enchant.maximumLevel else 1
         return enchant.getInformationSlot(player, displayLevel)
+    }
+
+    private fun getEmptyResultsSlot(player: Player, menu: Menu): Slot {
+        val configPath = "enchant-gui.empty-results"
+        if (!plugin.configYml.has("$configPath.item")) {
+            return defaultSlot
+        }
+
+        val hasItem = menu.getState<Boolean>(player, "hasItem") ?: false
+        val groupId = menu.getState<String>(player, "groupId")
+        val placeholders = mapOf(
+            "group" to (groupId?.let { getGroupDisplayName(it) } ?: plugin.langYml.getFormattedString("all"))
+        )
+
+        val loreKeyPath = when {
+            hasItem && groupId != null && plugin.configYml.has("$configPath.with-item-and-group-lore-key") ->
+                "$configPath.with-item-and-group-lore-key"
+            hasItem && plugin.configYml.has("$configPath.with-item-lore-key") ->
+                "$configPath.with-item-lore-key"
+            groupId != null && plugin.configYml.has("$configPath.group-lore-key") ->
+                "$configPath.group-lore-key"
+            else ->
+                "$configPath.lore-key"
+        }
+
+        return slot(
+            buildGuiItem(
+                configPath,
+                placeholders,
+                plugin.configYml.getString(loreKeyPath)
+            )
+        )
     }
 
     override fun getRows() = plugin.configYml.getInt("enchant-gui.enchant-area.height")
@@ -633,10 +669,13 @@ private class EnchantPageChanger(
             return emptySlot
         }
 
-        val item = Items.lookup(
-            plugin.configYml.getString("$configPath.item")
-                .replacePagePlaceholders(currentPage, maxPage)
-        ).item
+        val item = buildGuiItem(
+            configPath,
+            mapOf(
+                "page" to currentPage.toString(),
+                "max_page" to maxPage.toString()
+            )
+        )
 
         return slot(item) {
             onLeftClick { event, _ ->
@@ -655,6 +694,11 @@ private class EnchantPageChanger(
 
                 menu.setState(clickedPlayer, Page.PAGE_KEY, nextPage.coerceIn(1, clickedMaxPage))
                 clickedPlayer.playPageChangeSound(configPath)
+                clickedPlayer.sendLangMessage(
+                    "changed-enchant-page",
+                    "page" to nextPage.toString(),
+                    "max_page" to clickedMaxPage.toString()
+                )
             }
         }
     }
@@ -688,9 +732,96 @@ private fun Collection<EcoEnchant>.sortForGui(): List<EcoEnchant> {
         .mapNotNull { byEnchantment[it] }
 }
 
-private fun String.replacePagePlaceholders(page: Int, maxPage: Int): String {
-    return this.replace("%page%", page.toString())
-        .replace("%max_page%", maxPage.toString())
+private fun getConfiguredGuiTitle(configPath: String): String {
+    return if (plugin.configYml.has("$configPath.title-key")) {
+        plugin.langYml.getFormattedString(plugin.configYml.getString("$configPath.title-key"))
+    } else {
+        plugin.configYml.getFormattedString("$configPath.title")
+    }
+}
+
+private fun buildGuiItem(
+    configPath: String,
+    placeholders: Map<String, String> = emptyMap(),
+    loreKeyOverride: String? = null
+): ItemStack {
+    return buildGuiItem(plugin.configYml.getSubsection(configPath), placeholders, loreKeyOverride)
+}
+
+private fun buildGuiItem(
+    config: Config,
+    placeholders: Map<String, String> = emptyMap(),
+    loreKeyOverride: String? = null
+): ItemStack {
+    val builder = ItemStackBuilder(
+        Items.lookup(config.getString("item").replacePlaceholders(placeholders))
+    )
+
+    if (config.has("name-key")) {
+        builder.setDisplayName(
+            plugin.langYml.getFormattedString(config.getString("name-key"))
+                .replacePlaceholders(placeholders)
+        )
+    } else if (config.has("name")) {
+        builder.setDisplayName(config.getString("name").replacePlaceholders(placeholders).formatEco())
+    }
+
+    if (loreKeyOverride != null) {
+        builder.addLoreLines(plugin.langYml.getStrings(loreKeyOverride).map {
+            it.replacePlaceholders(placeholders)
+        }.formatEco())
+    } else if (config.has("lore-key")) {
+        builder.addLoreLines(getConfiguredGuiLore(config, placeholders).formatEco())
+    } else if (config.has("lore")) {
+        builder.addLoreLines(getConfiguredGuiLore(config, placeholders).formatEco())
+    }
+
+    return builder.build()
+}
+
+private fun getConfiguredGuiLore(configPath: String, placeholders: Map<String, String> = emptyMap()): List<String> {
+    return getConfiguredGuiLore(plugin.configYml.getSubsection(configPath), placeholders)
+}
+
+private fun getConfiguredGuiLore(config: Config, placeholders: Map<String, String> = emptyMap()): List<String> {
+    val lore = if (config.has("lore-key")) {
+        plugin.langYml.getStrings(config.getString("lore-key"))
+    } else if (config.has("lore")) {
+        config.getStrings("lore")
+    } else {
+        emptyList()
+    }
+
+    return lore.map { it.replacePlaceholders(placeholders) }
+}
+
+private fun String.replacePlaceholders(placeholders: Map<String, String>): String {
+    var result = this
+    for ((key, value) in placeholders) {
+        result = result.replace("%$key%", value)
+    }
+    return result
+}
+
+private fun Player.sendLangMessage(key: String, vararg replacements: Pair<String, String>) {
+    var message = plugin.langYml.getMessage(key, StringUtils.FormatOption.WITHOUT_PLACEHOLDERS)
+
+    for ((placeholder, value) in replacements) {
+        message = message.replace("%$placeholder%", value)
+    }
+
+    this.sendMessage(message)
+}
+
+private fun getGroupDisplayName(groupId: String): String {
+    val groupBy = plugin.configYml.getString("enchant-gui.group-by")
+
+    return when (groupBy) {
+        "type" -> EnchantmentTypes[groupId]?.displayName
+        "rarity" -> EnchantmentRarities[groupId]?.displayName
+        "target" -> EnchantmentTargets[groupId]?.displayName
+        else -> null
+    } ?: groupId
 }
 
 private fun Player.hasAdminToolsPermission(): Boolean {
@@ -737,40 +868,27 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
                 .setDisplayName(this.getFormattedName(level))
                 .addLoreLines(this.getFormattedDescription(level, player))
                 .addLoreLines {
-                    plugin.configYml.getStrings("enchantinfo.item.lore")
-                        .map {
-                            it.replace("%max_level%", enchantment.maxLevel.toString())
-                                .replace("%rarity%", this.enchantmentRarity.displayName)
-                                .replace(
-                                    "%targets%",
-                                    this.targets.joinToString(", ") { target -> target.displayName }
-                                )
-                                .replace(
-                                    "%conflicts%",
-                                    if (this.conflictsWithEverything) {
-                                        plugin.langYml.getFormattedString("all-conflicts")
-                                    } else {
-                                        this.conflicts.joinToString(", ") { conflict ->
-                                            conflict.wrap().getFormattedName(0)
-                                        }.ifEmpty { plugin.langYml.getFormattedString("no-conflicts") }
-                                    }
-                                )
-                                .replace(
-                                    "%required%",
-                                    this.required.joinToString(", ") { required ->
-                                        required.wrap().getFormattedName(0)
-                                    }.ifEmpty { plugin.langYml.getFormattedString("no-required") }
-                                )
-                                .replace("%tradeable%", this.isObtainableThroughTrading.parseYesOrNo(plugin.langYml))
-                                .replace(
-                                    "%discoverable%",
-                                    this.isObtainableThroughDiscovery.parseYesOrNo(plugin.langYml)
-                                )
-                                .replace(
-                                    "%enchantable%",
-                                    this.isObtainableThroughEnchanting.parseYesOrNo(plugin.langYml)
-                                )
-                        }
+                    getConfiguredGuiLore(
+                        "enchantinfo.item",
+                        mapOf(
+                            "max_level" to enchantment.maxLevel.toString(),
+                            "rarity" to this.enchantmentRarity.displayName,
+                            "targets" to this.targets.joinToString(", ") { target -> target.displayName },
+                            "conflicts" to if (this.conflictsWithEverything) {
+                                plugin.langYml.getFormattedString("all-conflicts")
+                            } else {
+                                this.conflicts.joinToString(", ") { conflict ->
+                                    conflict.wrap().getFormattedName(0)
+                                }.ifEmpty { plugin.langYml.getFormattedString("no-conflicts") }
+                            },
+                            "required" to this.required.joinToString(", ") { required ->
+                                required.wrap().getFormattedName(0)
+                            }.ifEmpty { plugin.langYml.getFormattedString("no-required") },
+                            "tradeable" to this.isObtainableThroughTrading.parseYesOrNo(plugin.langYml),
+                            "discoverable" to this.isObtainableThroughDiscovery.parseYesOrNo(plugin.langYml),
+                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo(plugin.langYml)
+                        )
+                    )
                         .formatEco()
                         .flatMap {
                             it.lineWrap(32, true)

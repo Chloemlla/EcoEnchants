@@ -3,7 +3,7 @@ messages:
   no-permission: "&cYou don't have permission to do this!"
   not-player: "&cThis command must be run by a player"
   invalid-command: "&cUnknown subcommand!"
-  reloaded: "Reloaded in %time%ms! Loaded %count% enchants. &cRelog if you added enchantments or you will get kicked. You may need to restart your server for some changes to take effect."
+  reloaded: "&a重载完成 / Reloaded &7(%time%ms, %count% enchants). &c新增附魔后请重新登录，部分变更可能需要重启服务器。 / Relog after adding enchantments; some changes may require a restart."
   invalid-player: "&cInvalid Player!"
   requires-player: "&cRequires a Player!"
   enabled-descriptions: "&fYou have successfully &aenabled &fenchantment descriptions!"
@@ -17,12 +17,104 @@ messages:
   invalid-enchantment: "&cInvalid enchantment!"
   added-enchant: "&fAdded &a%enchant%&f to &a%player%&f's held item!"
   removed-enchant: "&fRemoved &a%enchant%&f from &a%player%&f's held item!"
-  changed-enchant-page: "&fShowing enchantment page &a%page%&7/&a%max_page%&f."
-  opened-enchant-group: "&fShowing &a%group%&f enchantments."
-  returned-gui-items: "&fReturned &a%amount%&f item(s) from the enchant GUI."
-  returned-gui-items-with-overflow: "&fReturned &a%amount%&f item(s) from the enchant GUI. &e%dropped% item(s) dropped nearby because your inventory was full."
-  opened-admin-gui: "&fOpened the EcoEnchants admin tools."
-  admin-gui-disabled: "&cAdmin tools are disabled."
+  changed-enchant-page: "&f页面 / Page &a%page%&7/&a%max_page%&f."
+  opened-enchant-group: "&f正在浏览 / Browsing: &a%group%&f."
+  returned-gui-items: "&f已返还 / Returned &a%amount%&f GUI item(s)."
+  returned-gui-items-with-overflow: "&f已返还 / Returned &a%amount%&f GUI item(s). &e%dropped% 个物品因背包已满掉落在附近 / dropped nearby because your inventory was full."
+  opened-admin-gui: "&f已打开管理员工具 / Opened admin tools."
+  admin-gui-disabled: "&c管理员工具已禁用 / Admin tools are disabled."
+
+gui:
+  common:
+    close:
+      name: "&c关闭 / Close"
+      lore:
+        - "&7关闭当前界面"
+        - "&8Close this menu"
+    back:
+      name: "&f返回 / Back"
+      lore:
+        - "&7返回附魔浏览"
+        - "&8Return to the enchant browser"
+    back-to-groups:
+      name: "&f返回分组 / Back to Groups"
+      lore:
+        - "&7回到附魔分组列表"
+        - "&8Return to the group list"
+
+  enchantinfo:
+    item:
+      lore:
+        - ""
+        - "&f最高等级 / Max Level: &a%max_level%"
+        - "&f稀有度 / Rarity: &a%rarity%"
+        - "&f适用物品 / Applicable to: &a%targets%"
+        - "&f冲突 / Conflicts with: &a%conflicts%"
+        - "&f前置 / Requires: &a%required%"
+        - "&f村民交易 / Trading: &a%tradeable%"
+        - "&f战利品发现 / Discovery: &a%discoverable%"
+        - "&f附魔台 / Enchanting: &a%enchantable%"
+
+  enchant:
+    title: "&8附魔浏览 / Enchant Browser"
+    info:
+      name: "&a使用说明 / How to Use"
+      lore:
+        - "&f将物品放入顶部中央槽位"
+        - "&7Put an item in the top middle slot"
+        - "&f下方会显示可添加的附魔"
+        - "&7Available enchantments appear below"
+    page-next:
+      name: "&f下一页 / Next Page &7(%page%/%max_page%)"
+      lore:
+        - "&7查看后一页附魔"
+        - "&8Show the next page"
+    page-previous:
+      name: "&f上一页 / Previous Page &7(%page%/%max_page%)"
+      lore:
+        - "&7查看前一页附魔"
+        - "&8Show the previous page"
+    admin-tools:
+      name: "&c管理员工具 / Admin Tools"
+      lore:
+        - "&7打开 EcoEnchants 管理面板"
+        - "&8Open the admin utility menu"
+
+  group:
+    title: "&8附魔分组 / Enchantment Groups"
+    normal:
+      name: "&7普通附魔 / Normal Enchantments"
+      lore:
+        - "&f浏览普通附魔"
+        - "&8Browse normal enchantments"
+    spell:
+      name: "<gradient:#0575E6:#1E3FBA>法术附魔 / Spell Enchantments"
+      lore:
+        - "&f浏览法术附魔"
+        - "&8Browse spell enchantments"
+    special:
+      name: "<gradient:#FB57EC:#EF1DEC>特殊附魔 / Special Enchantments"
+      lore:
+        - "&f浏览特殊附魔"
+        - "&8Browse special enchantments"
+    curse:
+      name: "&c诅咒附魔 / Curse Enchantments"
+      lore:
+        - "&f浏览诅咒附魔"
+        - "&8Browse curse enchantments"
+
+  admin:
+    title: "&8管理员工具 / Admin Tools"
+    reload:
+      name: "&a重载配置 / Reload Config"
+      lore:
+        - "&7重新加载 EcoEnchants 配置"
+        - "&8Reload EcoEnchants configuration"
+    random-book:
+      name: "&d给自己随机书 / Random Book"
+      lore:
+        - "&7给自己一本随机附魔书"
+        - "&8Give yourself a random enchanted book"
 
 
 all: "All"

@@ -100,13 +100,7 @@ enchantinfo:
     row: 2
     column: 5
     show-max-level: true # Whether the book should be the max level or level 1
-    lore: # The description is automatically appended
-      - ""
-      - "&fMax Level: &a%max_level%"
-      - "&fRarity: &a%rarity%"
-      - "&fApplicable to: &a%targets%"
-      - "&fConflicts with: &a%conflicts%"
-      - "&fRequires: &a%required%"
+    lore-key: gui.enchantinfo.item.lore # The description is automatically appended
 
   # Custom GUI slots; see here for a how-to: https://plugins.auxilor.io/all-plugins/custom-gui-slots
   custom-slots: [ ]
@@ -114,7 +108,7 @@ enchantinfo:
 # Options for the enchant GUI.
 enchant-gui:
   rows: 6 # How many rows to have in the GUI
-  title: "Enchant GUI" # The title of the GUI
+  title-key: gui.enchant.title # The title of the GUI
 
   mask: # The background material
     items:
@@ -132,12 +126,9 @@ enchant-gui:
 
   # Options for the info item
   info:
-    item: player_head name:"&aHow do I use this?" texture:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0=
-    lore:
-      - "&fPlace an item in the slot at the top,"
-      - "&fand all the enchantments you can add"
-      - "&fto to this item will show up in the"
-      - "&farea below!"
+    item: player_head texture:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0=
+    name-key: gui.enchant.info.name
+    lore-key: gui.enchant.info.lore
     row: 1
     column: 9
 
@@ -147,14 +138,18 @@ enchant-gui:
   # Options for the page change buttons
   page-change:
     forwards:
-      item: arrow name:"&fNext Page &7(%page%/%max_page%)" # The item. Will not show if on the last page.
+      item: arrow # Will not show if on the last page.
+      name-key: gui.enchant.page-next.name
+      lore-key: gui.enchant.page-next.lore
       row: 6
       column: 6
       sound: ui.button.click
       sound-volume: 1.0
       sound-pitch: 1.0
     backwards:
-      item: arrow name:"&fPrevious Page &7(%page%/%max_page%)" # The item. Will not show if on the first page.
+      item: arrow # Will not show if on the first page.
+      name-key: gui.enchant.page-previous.name
+      lore-key: gui.enchant.page-previous.lore
       row: 6
       column: 4
       sound: ui.button.click
@@ -165,8 +160,8 @@ enchant-gui:
   close-button:
     enabled: true
     item: barrier
-    name: "&cClose"
-    lore: [ ]
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
     row: 6
     column: 5
 
@@ -180,6 +175,15 @@ enchant-gui:
   # Custom GUI slots; see here for a how-to: https://plugins.auxilor.io/all-plugins/custom-gui-slots
   custom-slots: [ ]
 
+  # Admin-only utility entry point. Only players with at least one admin tool permission see it.
+  admin-tools:
+    enabled: true
+    item: command_block
+    name-key: gui.enchant.admin-tools.name
+    lore-key: gui.enchant.admin-tools.lore
+    row: 1
+    column: 1
+
   # If enabled, /enchant opens a group selection menu first, grouping enchantments
   # by the group-by setting. If disabled, /enchant opens the flat enchantment list (current behavior).
   grouped: false
@@ -192,15 +196,16 @@ enchant-gui:
   # Only shown when grouped is true.
   back-button:
     enabled: true
-    item: arrow name:"&fBack to Groups"
-    lore: []
+    item: arrow
+    name-key: gui.common.back-to-groups.name
+    lore-key: gui.common.back-to-groups.lore
     row: 6
     column: 1
 
 # Options for the group selection GUI (only used when enchant-gui.grouped is true)
 group-gui:
   rows: 3
-  title: "Enchantment Groups"
+  title-key: gui.group.title
 
   mask:
     items:
@@ -210,6 +215,14 @@ group-gui:
       - "100000001"
       - "111111111"
 
+  admin-tools:
+    enabled: true
+    item: command_block
+    name-key: gui.enchant.admin-tools.name
+    lore-key: gui.enchant.admin-tools.lore
+    row: 1
+    column: 9
+
   # Each group must have a unique id matching an entry from the file corresponding
   # to the group-by setting:
   #   group-by: type   -> IDs from types.yml   (normal, spell, special, curse)
@@ -218,31 +231,85 @@ group-gui:
   # Groups with unrecognized IDs are silently ignored.
   groups:
     - id: normal
-      item: enchanted_book name:"&7Normal Enchantments"
-      lore:
-        - "&fClick to browse normal enchantments"
+      item: enchanted_book
+      name-key: gui.group.normal.name
+      lore-key: gui.group.normal.lore
       row: 2
       column: 2
     - id: spell
-      item: enchanted_book name:"<gradient:#0575E6:#1E3FBA>Spell Enchantments"
-      lore:
-        - "&fClick to browse spell enchantments"
+      item: enchanted_book
+      name-key: gui.group.spell.name
+      lore-key: gui.group.spell.lore
       row: 2
       column: 4
     - id: special
-      item: enchanted_book name:"<gradient:#FB57EC:#EF1DEC>Special Enchantments"
-      lore:
-        - "&fClick to browse special enchantments"
+      item: enchanted_book
+      name-key: gui.group.special.name
+      lore-key: gui.group.special.lore
       row: 2
       column: 6
     - id: curse
-      item: enchanted_book name:"&cCurse Enchantments"
-      lore:
-        - "&fClick to browse curse enchantments"
+      item: enchanted_book
+      name-key: gui.group.curse.name
+      lore-key: gui.group.curse.lore
       row: 2
       column: 8
 
   # Custom GUI slots; see here for a how-to: https://plugins.auxilor.io/all-plugins/custom-gui-slots
+  custom-slots: []
+
+# Options for the admin utility GUI
+admin-gui:
+  enabled: true
+  rows: 3
+  title-key: gui.admin.title
+
+  mask:
+    items:
+      - black_stained_glass_pane
+    pattern:
+      - "111111111"
+      - "100010001"
+      - "111111111"
+
+  tools:
+    reload:
+      enabled: true
+      item: redstone
+      name-key: gui.admin.reload.name
+      lore-key: gui.admin.reload.lore
+      row: 2
+      column: 3
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
+    random-book:
+      enabled: true
+      item: enchanted_book
+      name-key: gui.admin.random-book.name
+      lore-key: gui.admin.random-book.lore
+      row: 2
+      column: 7
+      sound: entity.player.levelup
+      sound-volume: 1.0
+      sound-pitch: 1.2
+
+  back-button:
+    enabled: true
+    item: arrow
+    name-key: gui.common.back.name
+    lore-key: gui.common.back.lore
+    row: 3
+    column: 4
+
+  close-button:
+    enabled: true
+    item: barrier
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
+    row: 3
+    column: 6
+
   custom-slots: []
 
 # Options for converting lore-based enchants (from other plugins) with EcoEnchants enchantments
