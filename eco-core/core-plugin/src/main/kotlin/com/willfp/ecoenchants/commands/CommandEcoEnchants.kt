@@ -21,5 +21,6 @@ object CommandEcoEnchants : PluginCommand(
             .addSubcommand(CommandToggleDescriptions)
             .addSubcommand(CommandGiveRandomBook)
             .addSubcommand(CommandGUI)
+            .addSubcommand(CommandServices)
     }
 }

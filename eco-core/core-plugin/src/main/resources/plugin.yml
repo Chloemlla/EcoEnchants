@@ -43,6 +43,7 @@ permissions:
       ecoenchants.command.enchantinfo: true
       ecoenchants.command.gui: true
       ecoenchants.command.enchant: true
+      ecoenchants.command.services: true
   ecoenchants.anvil.*:
     description: All anvil perks
     default: op
@@ -72,4 +73,7 @@ permissions:
     default: true
   ecoenchants.command.enchant:
     description: Allows the use of /enchant.
+    default: op
+  ecoenchants.command.services:
+    description: Allows checking the EcoEnchants online license gate status.
     default: op

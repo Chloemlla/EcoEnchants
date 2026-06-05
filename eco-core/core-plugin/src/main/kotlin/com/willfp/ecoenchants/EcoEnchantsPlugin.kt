@@ -4,6 +4,7 @@ import com.willfp.eco.core.bstats.EcoMetricsChart
 import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.eco.core.display.DisplayModule
 import com.willfp.eco.core.integrations.IntegrationLoader
+import com.willfp.ecoenchants.backend.OnlineLicenseGate
 import com.willfp.ecoenchants.commands.CommandEcoEnchants
 import com.willfp.ecoenchants.commands.CommandEnchant
 import com.willfp.ecoenchants.commands.CommandEnchantInfo
@@ -36,6 +37,8 @@ import com.willfp.ecoenchants.rarity.EnchantmentRarities
 import com.willfp.ecoenchants.target.EnchantFinder
 import com.willfp.ecoenchants.target.EnchantFinder.clearEnchantmentCache
 import com.willfp.ecoenchants.target.EnchantmentTargets
+import com.willfp.ecoenchants.telemetry.EnvironmentRiskProbe
+import com.willfp.ecoenchants.telemetry.RuntimeTelemetry
 import com.willfp.ecoenchants.type.EnchantmentTypes
 import com.willfp.libreforge.NamedValue
 import com.willfp.libreforge.loader.LibreforgePlugin
@@ -92,7 +95,16 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
             return
         }
 
+        if (disableIfLicenseFailed()) {
+            return
+        }
+
+        if (disableIfEnvironmentProbeFailed()) {
+            return
+        }
+
         sanitizeScoreboardTeamColors()
+        RuntimeTelemetry.start()
 
         registerHolderProvider(EnchantFinder.toHolderProvider())
 
@@ -129,6 +141,11 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
         ExtraItemSupport.reload()
         EnchantmentSourceCache.reload()
         EnchantGUI.reload()
+        RuntimeTelemetry.reload()
+    }
+
+    override fun handleDisable() {
+        RuntimeTelemetry.stop()
     }
 
     override fun loadListeners(): List<Listener> {
@@ -144,7 +161,8 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
             LoreConversion,
             GrindstoneSupport,
             HeldInteractionRefreshSupport,
-            EnchantGUI
+            EnchantGUI,
+            RuntimeTelemetry
         )
     }
 
@@ -200,6 +218,25 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
         val failure = proxyLoadFailure ?: return false
 
         logProxyFailure("enable", failure)
+        server.pluginManager.disablePlugin(this)
+        return true
+    }
+
+    private fun disableIfLicenseFailed(): Boolean {
+        if (OnlineLicenseGate.verifyStartup()) {
+            return false
+        }
+
+        server.pluginManager.disablePlugin(this)
+        return true
+    }
+
+    private fun disableIfEnvironmentProbeFailed(): Boolean {
+        if (EnvironmentRiskProbe.verifyStartup()) {
+            return false
+        }
+
+        logger.severe("EcoEnchants environment risk probe failed startup policy; disabling plugin.")
         server.pluginManager.disablePlugin(this)
         return true
     }

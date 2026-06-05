@@ -30,7 +30,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,3 +53,48 @@ jobs:
             !build/libs/*-javadoc.jar
           if-no-files-found: error
           retention-days: 14
+      - name: Prepare release metadata
+        id: release_metadata
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        shell: bash
+        run: |
+          VERSION_NAME="$(sed -n 's/^version=//p' gradle.properties | head -n 1)"
+          if [ -z "$VERSION_NAME" ]; then
+            echo "version is missing from gradle.properties" >&2
+            exit 1
+          fi
+
+          SHORT_HASH="${GITHUB_SHA::7}"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "SHORT_HASH=$SHORT_HASH" >> "$GITHUB_ENV"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "short_hash=$SHORT_HASH" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f RELEASE_NOTES.md ]; then
+            {
+              echo "EcoEnchants $VERSION_NAME-$SHORT_HASH"
+              echo
+              echo "Commit: $GITHUB_SHA"
+            } > RELEASE_NOTES.md
+          fi
+
+          mkdir -p build/release
+          find build/libs -maxdepth 1 -type f -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -exec cp {} build/release/ \;
+
+          if ! ls build/release/*.jar >/dev/null 2>&1; then
+            echo "No release JARs found in build/libs" >&2
+            exit 1
+          fi
+      - name: Automatic release
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: softprops/action-gh-release@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          make_latest: true
+          body_path: RELEASE_NOTES.md
+          tag_name: "v${{ steps.release_metadata.outputs.version_name }}-${{ steps.release_metadata.outputs.short_hash }}"
+          prerelease: false
+          name: "EcoEnchants ${{ steps.release_metadata.outputs.version_name }}-${{ steps.release_metadata.outputs.short_hash }}"
+          files: |
+            build/release/*.jar

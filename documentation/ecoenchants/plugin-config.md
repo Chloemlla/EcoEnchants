@@ -14,6 +14,22 @@ A few options note that they require a **server restart** rather than a reload, 
 ## Default config.yml
 
 ```yaml
+# Required online license check for closed-source commercial builds.
+# The plugin will disable itself during startup unless this check returns status "valid" or "trial".
+license:
+  key: ""
+  api-url: "https://api.example.com/api/ecoenchants"
+  channel: stable
+  timeout-ms: 3000
+  installation-id: ""
+  send-server-name: false
+  send-build-fingerprint: true
+  # Privacy boundary:
+  # - The startup check sends license key, installation ID, plugin/server version, Java version,
+  #   online-mode, channel, and optionally server name / build fingerprint.
+  # - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
+  #   coordinates, permissions, or world file fingerprints.
+
 # Options for enchanting items in the enchanting table
 enchanting-table:
   enabled: true # If custom enchantments should be available from enchanting tables

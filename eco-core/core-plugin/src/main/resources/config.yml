@@ -3,6 +3,78 @@
 # by Auxilor
 #
 
+# Required online license check for closed-source commercial builds.
+# The plugin will disable itself during startup unless this check returns status "valid" or "trial".
+license:
+  key: ""
+  api-url: "https://api.example.com/api/ecoenchants"
+  channel: stable
+  timeout-ms: 3000
+  installation-id: ""
+  send-server-name: false
+  send-build-fingerprint: true
+  # Privacy boundary:
+  # - The startup check sends license key, installation ID, plugin/server version, Java version,
+  #   online-mode, channel, and optionally server name / build fingerprint.
+  # - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
+  #   coordinates, permissions, or world file fingerprints.
+
+# Server-side runtime telemetry and transparent compliance probes.
+# This records operational audit metadata for administrators. Raw IP addresses, full chat text,
+# and full inventory contents are not written unless explicitly enabled below.
+runtime-telemetry:
+  enabled: true
+
+  audit-log:
+    enabled: true
+    file: telemetry/audit.jsonl
+    max-file-size-mb: 10
+
+  privacy:
+    # Optional salt for stable local hashes. Leave blank to derive one from this server runtime.
+    hash-salt: ""
+    include-raw-network-addresses: false
+
+  identity:
+    enabled: true
+
+  movement:
+    enabled: true
+    sample-interval-ms: 1000
+    max-distance-per-sample: 24.0
+    max-blocks-per-second: 30.0
+    log-samples: false
+
+  state-delta:
+    enabled: true
+    include-inventory-summary: true
+
+  text:
+    enabled: true
+    capture-raw: false
+    log-all-metadata: false
+    log-command-root: true
+    log-matched-terms: true
+    risk-terms:
+      - dupe
+      - crash
+      - lag machine
+      - xray
+      - kill aura
+
+  # Transparent process-level policy check. This does not hide control flow, inspect memory,
+  # or intentionally crash the JVM; redlines disable EcoEnchants when configured to do so.
+  environment-probe:
+    enabled: true
+    interval-ticks: 1200
+    redline-action: disable-plugin # Options: disable-plugin, log-only
+    denied-jvm-args:
+      - "-agentlib:jdwp"
+      - "-Xdebug"
+    block-java-agents: false
+    denied-env-vars: []
+    denied-system-properties: []
+
 # Options for enchanting items in the enchanting table
 enchanting-table:
   enabled: true # If custom enchantments should be available from enchanting tables

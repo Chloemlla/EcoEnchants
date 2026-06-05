@@ -4,7 +4,7 @@
   <br>
 </h1>
 
-<h4 align="center">Source code for EcoEnchants, a premium spigot plugin.</h4>
+<h4 align="center">EcoEnchants, a premium Spigot plugin.</h4>
 
 <p align="center">
     <a href="https://polymart.org/resource/1-16-1-17-ecoenchants.490">
@@ -30,9 +30,9 @@
 [![Docs](https://i.imgur.com/uS2O3ll.png)](https://plugins.auxilor.io/ecoenchants/all-enchantments)
 [![Compatibility](https://i.imgur.com/MxiF57Z.png)]()
 
-## License
+## Commercial License
 
-*Click here to read [the entire license](https://github.com/Auxilor/EcoEnchants/blob/master/LICENSE.md).*
+EcoEnchants is distributed as a closed-source commercial plugin. Commercial builds require online license verification during startup.
 
 <h1 align="center">
   <br>
