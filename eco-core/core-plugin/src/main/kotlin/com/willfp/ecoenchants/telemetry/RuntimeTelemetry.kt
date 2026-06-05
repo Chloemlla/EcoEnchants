@@ -37,6 +37,7 @@ object RuntimeTelemetry : Listener {
     private val inventoryHashes = ConcurrentHashMap<UUID, String>()
 
     fun start() {
+        TelemetryReporter.start()
         TelemetryAuditLog.start()
         EnvironmentRiskProbe.start()
     }
@@ -46,6 +47,7 @@ object RuntimeTelemetry : Listener {
         movementSamples.clear()
         inventoryHashes.clear()
         TelemetryAuditLog.write("telemetry_lifecycle", mapOf("state" to "reloaded"))
+        TelemetryReporter.reload()
         EnvironmentRiskProbe.start()
     }
 
@@ -55,6 +57,7 @@ object RuntimeTelemetry : Listener {
         movementSamples.clear()
         inventoryHashes.clear()
         TelemetryAuditLog.stop()
+        TelemetryReporter.stop()
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
