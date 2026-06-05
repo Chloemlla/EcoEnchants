@@ -6,6 +6,7 @@ import com.willfp.ecoenchants.backend.RemoteOperationsClient
 import com.willfp.ecoenchants.plugin
 import com.willfp.ecoenchants.telemetry.EnvironmentRiskProbe
 import com.willfp.ecoenchants.telemetry.RuntimeTelemetryPolicy
+import com.willfp.ecoenchants.telemetry.TelemetryReporter
 import org.bukkit.command.CommandSender
 
 object CommandServices : Subcommand(
@@ -22,6 +23,9 @@ object CommandServices : Subcommand(
             sender.sendMessage(line)
         }
         for (line in RuntimeTelemetryPolicy.statusLines()) {
+            sender.sendMessage(line)
+        }
+        for (line in TelemetryReporter.statusLines()) {
             sender.sendMessage(line)
         }
         for (line in EnvironmentRiskProbe.statusLines()) {
