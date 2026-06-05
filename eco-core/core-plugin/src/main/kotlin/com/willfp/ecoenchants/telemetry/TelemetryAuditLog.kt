@@ -1,5 +1,6 @@
 package com.willfp.ecoenchants.telemetry
 
+import com.willfp.ecoenchants.backend.BackendJson
 import com.willfp.ecoenchants.plugin
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -7,6 +8,7 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.UUID
 
 object TelemetryAuditLog {
     private val lock = Any()
@@ -24,7 +26,20 @@ object TelemetryAuditLog {
     }
 
     fun write(category: String, payload: Map<String, Any?> = emptyMap()) {
-        if (!RuntimeTelemetryPolicy.enabled || !RuntimeTelemetryPolicy.auditLogEnabled) {
+        if (!RuntimeTelemetryPolicy.enabled) {
+            return
+        }
+
+        val event = linkedMapOf<String, Any?>(
+            "eventId" to UUID.randomUUID().toString(),
+            "timestamp" to Instant.now().toString(),
+            "category" to category,
+            "payload" to payload
+        )
+
+        TelemetryReporter.enqueue(event)
+
+        if (!RuntimeTelemetryPolicy.auditLogEnabled) {
             return
         }
 
@@ -34,15 +49,9 @@ object TelemetryAuditLog {
                 Files.createDirectories(path.parent)
                 rotateIfNeeded(path)
 
-                val event = linkedMapOf<String, Any?>(
-                    "timestamp" to Instant.now().toString(),
-                    "category" to category,
-                    "payload" to payload
-                )
-
                 Files.writeString(
                     path,
-                    "${toJson(event)}\n",
+                    "${BackendJson.toJson(event)}\n",
                     StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND
@@ -79,39 +88,5 @@ object TelemetryAuditLog {
         val rotated = path.resolveSibling("${path.fileName}.1")
         Files.deleteIfExists(rotated)
         Files.move(path, rotated)
-    }
-
-    private fun toJson(value: Any?): String = when (value) {
-        null -> "null"
-        is Boolean -> value.toString()
-        is Number -> value.toString()
-        is Map<*, *> -> value.entries.joinToString(prefix = "{", postfix = "}") { (key, item) ->
-            "${toJson(key.toString())}:${toJson(item)}"
-        }
-        is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { toJson(it) }
-        is Array<*> -> value.joinToString(prefix = "[", postfix = "]") { toJson(it) }
-        else -> "\"${escapeJson(value.toString())}\""
-    }
-
-    private fun escapeJson(value: String): String = buildString {
-        for (char in value) {
-            when (char) {
-                '\\' -> append("\\\\")
-                '"' -> append("\\\"")
-                '\b' -> append("\\b")
-                '\u000C' -> append("\\f")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> {
-                    if (char.code < 0x20) {
-                        append("\\u")
-                        append(char.code.toString(16).padStart(4, '0'))
-                    } else {
-                        append(char)
-                    }
-                }
-            }
-        }
     }
 }

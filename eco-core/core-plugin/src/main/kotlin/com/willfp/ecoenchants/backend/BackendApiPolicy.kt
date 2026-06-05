@@ -103,8 +103,11 @@ object BackendApiPolicy {
         )
     }
 
-    private fun normalizeContractUrl(rawUrl: String): String {
-        val cleaned = rawUrl.trim().trimEnd('/')
+    fun normalizeVersionedApiUrl(rawUrl: String): String =
+        "${normalizeContractUrl(rawUrl)}/$API_VERSION"
+
+    fun normalizeContractUrl(rawUrl: String): String {
+        val cleaned = collapseDuplicatedAbsoluteUrl(rawUrl).trim().trimEnd('/')
         if (cleaned.endsWith("/$API_VERSION")) {
             return cleaned.removeSuffix("/$API_VERSION")
         }
@@ -112,6 +115,18 @@ object BackendApiPolicy {
             return cleaned
         }
         return "$cleaned$API_ROOT_PATH"
+    }
+
+    private fun collapseDuplicatedAbsoluteUrl(rawUrl: String): String {
+        val trimmed = rawUrl.trim()
+        val httpsIndex = trimmed.indexOf("https://", startIndex = "https://".length)
+        val httpIndex = trimmed.indexOf("http://", startIndex = "http://".length)
+        val index = listOf(httpsIndex, httpIndex)
+            .filter { it > 0 }
+            .minOrNull()
+            ?: return trimmed
+
+        return trimmed.substring(index)
     }
 
     private fun toWebSocketUrl(url: String): String = when {
