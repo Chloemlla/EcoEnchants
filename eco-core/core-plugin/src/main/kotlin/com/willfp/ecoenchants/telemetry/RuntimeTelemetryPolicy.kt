@@ -1,6 +1,7 @@
 package com.willfp.ecoenchants.telemetry
 
 import com.willfp.eco.core.config.interfaces.Config
+import com.willfp.ecoenchants.backend.BackendApiPolicy
 import com.willfp.ecoenchants.plugin
 
 object RuntimeTelemetryPolicy {
@@ -19,6 +20,34 @@ object RuntimeTelemetryPolicy {
     val maxAuditLogSizeBytes: Long
         get() = (double("runtime-telemetry.audit-log.max-file-size-mb", 10.0) * 1024 * 1024).toLong()
             .coerceAtLeast(0L)
+
+    val remoteReportingEnabled: Boolean
+        get() = bool("runtime-telemetry.remote-reporting.enabled", true)
+
+    val remoteReportingApiUrl: String
+        get() = string("runtime-telemetry.remote-reporting.api-url", BackendApiPolicy.versionedApiUrl)
+
+    val remoteReportingEndpoint: String
+        get() = string("runtime-telemetry.remote-reporting.endpoint", "/telemetry/events")
+
+    val remoteReportingUrl: String
+        get() = "${BackendApiPolicy.normalizeVersionedApiUrl(remoteReportingApiUrl)}" +
+                "/${remoteReportingEndpoint.trim().trimStart('/')}"
+
+    val remoteReportingIntervalTicks: Long
+        get() = int("runtime-telemetry.remote-reporting.interval-ticks", 1200).toLong().coerceAtLeast(20L)
+
+    val remoteReportingBatchSize: Int
+        get() = int("runtime-telemetry.remote-reporting.batch-size", 100).coerceIn(1, 1000)
+
+    val remoteReportingMaxQueuedEvents: Int
+        get() = int("runtime-telemetry.remote-reporting.max-queued-events", 5000).coerceAtLeast(1)
+
+    val remoteReportingTimeoutMillis: Int
+        get() = int("runtime-telemetry.remote-reporting.timeout-ms", 3000).coerceIn(500, 10000)
+
+    val remoteReportingRequireActivationToken: Boolean
+        get() = bool("runtime-telemetry.remote-reporting.require-activation-token", true)
 
     val hashSalt: String
         get() = string("runtime-telemetry.privacy.hash-salt", "")
@@ -98,6 +127,9 @@ object RuntimeTelemetryPolicy {
         "Enabled: $enabled",
         "Audit log enabled: $auditLogEnabled",
         "Audit log file: $auditLogFile",
+        "Remote reporting enabled: $remoteReportingEnabled",
+        "Remote reporting URL: $remoteReportingUrl",
+        "Remote reporting interval: ${remoteReportingIntervalTicks} ticks",
         "Identity anchors: $identityEnabled",
         "Movement sampling: $movementEnabled (${movementSampleIntervalMillis}ms)",
         "State delta logging: $stateDeltaEnabled",

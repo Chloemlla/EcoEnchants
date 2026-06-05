@@ -11,7 +11,7 @@ Every command and its permission node is listed below. Permissions follow the `e
 | `/enchant <enchant> <level>`                                     | Enchant the held item                                                   | `ecoenchants.command.enchant`            |
 | `/enchantinfo <enchant> [level]`                                 | Open the enchant info GUI for the specified enchantment at an optional level | `ecoenchants.command.enchantinfo`   |
 | `/ecoenchants gui`                                               | Open the enchantment GUI                                                | `ecoenchants.command.gui`                |
-| `/ecoenchants services`                                          | Show the required online license gate status and `/api/ecoenchants` contract path | `ecoenchants.command.services`     |
+| `/ecoenchants services`                                          | Show license, `/api/ecoenchants/v1`, remote operations, and local service status | `ecoenchants.command.services`     |
 | `/ecoenchants giverandombook <player> [type/rarity] [min] [max]` | Give a player a random enchanted book                                   | `ecoenchants.command.giverandombook`     |
 | `/ecoenchants import <id>`                                       | Import an enchant from [lrcdb](https://lrcdb.auxilor.io/)               | `ecoenchants.command.import`             |
 | `/ecoenchants export <id>`                                       | Export an enchant to [lrcdb](https://lrcdb.auxilor.io/)                 | `ecoenchants.command.export`             | 

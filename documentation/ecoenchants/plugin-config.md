@@ -18,7 +18,7 @@ A few options note that they require a **server restart** rather than a reload, 
 # The plugin will disable itself during startup unless this check returns status "valid" or "trial".
 license:
   key: ""
-  api-url: "https://api.example.com/api/ecoenchants"
+  api-url: "https://tts.chloemlla.com"
   channel: stable
   timeout-ms: 3000
   installation-id: ""
@@ -29,6 +29,34 @@ license:
   #   online-mode, channel, and optionally server name / build fingerprint.
   # - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
   #   coordinates, permissions, or world file fingerprints.
+
+# Secure remote operations client for /api/ecoenchants/v1.
+# The plugin connects outbound to the licensed backend after startup verification succeeds.
+# It never exposes arbitrary shell execution; managed commands are hardcoded allowlist actions.
+remote-operations:
+  enabled: true
+  reconnect-min-seconds: 5
+  reconnect-max-seconds: 300
+
+  audit-log:
+    enabled: true
+    file: security-audit.log
+
+  # File operations are disabled by default because they can change server data.
+  # Enable only for servers that should be maintained from the backend console.
+  file-ops:
+    enabled: false
+    # Leave blank to infer the Minecraft server root from plugins/EcoEnchants.
+    server-root: ""
+    max-read-bytes: 1048576
+    max-write-bytes: 10485760
+    allow-permanent-delete: false
+
+  # Backup creation writes zip archives into plugins/EcoEnchants/backups.
+  # Restore is intentionally not automatic; stage and review backup contents before applying.
+  backups:
+    enabled: false
+    max-total-size-mb: 256
 
 # Options for enchanting items in the enchanting table
 enchanting-table:
