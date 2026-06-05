@@ -5,6 +5,7 @@ import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.eco.core.display.DisplayModule
 import com.willfp.eco.core.integrations.IntegrationLoader
 import com.willfp.ecoenchants.backend.OnlineLicenseGate
+import com.willfp.ecoenchants.backend.RemoteOperationsClient
 import com.willfp.ecoenchants.commands.CommandEcoEnchants
 import com.willfp.ecoenchants.commands.CommandEnchant
 import com.willfp.ecoenchants.commands.CommandEnchantInfo
@@ -105,6 +106,7 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
 
         sanitizeScoreboardTeamColors()
         RuntimeTelemetry.start()
+        RemoteOperationsClient.start()
 
         registerHolderProvider(EnchantFinder.toHolderProvider())
 
@@ -142,9 +144,11 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
         EnchantmentSourceCache.reload()
         EnchantGUI.reload()
         RuntimeTelemetry.reload()
+        RemoteOperationsClient.reload()
     }
 
     override fun handleDisable() {
+        RemoteOperationsClient.stop()
         RuntimeTelemetry.stop()
     }
 

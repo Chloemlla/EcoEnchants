@@ -26,7 +26,7 @@ object OnlineLicenseGate {
 
         val request = runCatching {
             HttpRequest.newBuilder()
-                .uri(URI.create("${BackendApiPolicy.apiUrl}/${BackendApiPolicy.API_VERSION}/licenses/verify"))
+                .uri(URI.create("${BackendApiPolicy.versionedApiUrl}/licenses/verify"))
                 .timeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
                 .header("Content-Type", "application/json; charset=utf-8")
                 .header("User-Agent", userAgent())
@@ -50,9 +50,14 @@ object OnlineLicenseGate {
             return fail("License server returned HTTP ${response.statusCode()}.")
         }
 
-        val status = extractStatus(response.body())
+        val body = response.body()
+        val status = extractStatus(body)
         if (status == "valid" || status == "trial") {
-            lastResult = LicenseCheckResult.Valid(status)
+            lastResult = LicenseCheckResult.Valid(
+                status = status,
+                activationToken = BackendJson.stringField(body, "activationToken"),
+                activationId = BackendJson.stringField(body, "activationId")
+            )
             plugin.logger.info("EcoEnchants license verified online with status '$status'.")
             return true
         }
@@ -102,7 +107,7 @@ object OnlineLicenseGate {
         """.trimIndent()
     }
 
-    private fun installationId(): String {
+    fun installationId(): String {
         val configured = plugin.configYml.getString("license.installation-id").trim()
         if (configured.isNotBlank()) {
             return configured
@@ -157,29 +162,7 @@ object OnlineLicenseGate {
         return STATUS_REGEX.find(body)?.groupValues?.get(1)?.lowercase()
     }
 
-    private fun json(value: String): String {
-        return buildString {
-            for (char in value) {
-                when (char) {
-                    '\\' -> append("\\\\")
-                    '"' -> append("\\\"")
-                    '\b' -> append("\\b")
-                    '\u000C' -> append("\\f")
-                    '\n' -> append("\\n")
-                    '\r' -> append("\\r")
-                    '\t' -> append("\\t")
-                    else -> {
-                        if (char.code < 0x20) {
-                            append("\\u")
-                            append(char.code.toString(16).padStart(4, '0'))
-                        } else {
-                            append(char)
-                        }
-                    }
-                }
-            }
-        }
-    }
+    private fun json(value: String): String = BackendJson.escape(value)
 
     private val STATUS_REGEX = Regex(""""status"\s*:\s*"([^"]+)"""")
 }
@@ -192,9 +175,15 @@ sealed class LicenseCheckResult {
     }
 
     data class Valid(
-        val status: String
+        val status: String,
+        val activationToken: String? = null,
+        val activationId: String? = null
     ) : LicenseCheckResult() {
-        override val summary = status
+        override val summary = if (activationToken.isNullOrBlank()) {
+            "$status (no activation token)"
+        } else {
+            "$status (activation token available)"
+        }
     }
 
     data class Failed(
