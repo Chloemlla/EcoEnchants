@@ -75,6 +75,16 @@ tasks {
         }
 
         into(pluginDecompileClasses)
+
+        doLast {
+            val nativeClasses = fileTree(pluginDecompileClasses.get().asFile).matching {
+                include(nativeServerClassGlobs)
+            }.files
+
+            check(nativeClasses.isEmpty()) {
+                "Native server classes were copied into the decompile input."
+            }
+        }
     }
 
     register<JavaExec>("decompilePlugin") {

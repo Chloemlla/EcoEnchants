@@ -318,7 +318,7 @@ object RemoteFileOperations {
                     "requestedFormat" to requestedFormat,
                     "actualFormat" to "zip",
                     "productId" to BackendApiPolicy.PRODUCT_ID,
-                    "pluginVersion" to plugin.description.version,
+                    "pluginVersion" to plugin.pluginMeta.version,
                     "server" to mapOf(
                         "platform" to plugin.server.name,
                         "bukkitVersion" to plugin.server.bukkitVersion,
@@ -497,7 +497,7 @@ object RemoteFileOperations {
                     "createdAt" to Instant.now().toString(),
                     "actualFormat" to "zip",
                     "productId" to BackendApiPolicy.PRODUCT_ID,
-                    "pluginVersion" to plugin.description.version,
+                    "pluginVersion" to plugin.pluginMeta.version,
                     "entries" to manifestEntries
                 )
                 zip.putNextEntry(ZipEntry("manifest.json"))

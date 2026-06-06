@@ -210,7 +210,7 @@ object RemoteOperationsClient {
                 "javaVersion" to System.getProperty("java.version")
             ),
             "plugin" to mapOf(
-                "version" to plugin.description.version,
+                "version" to plugin.pluginMeta.version,
                 "channel" to BackendApiPolicy.channel
             ),
             "capabilities" to mapOf(
@@ -338,7 +338,7 @@ object RemoteOperationsClient {
     private fun diagnosticsSnapshot(): Map<String, Any?> = mapOf(
         "productId" to BackendApiPolicy.PRODUCT_ID,
         "plugin" to mapOf(
-            "version" to plugin.description.version,
+            "version" to plugin.pluginMeta.version,
             "loaded" to plugin.isLoaded,
             "enchantCount" to EcoEnchants.values().size
         ),
@@ -424,7 +424,7 @@ object RemoteOperationsClient {
             .build()
 
     private fun userAgent(): String {
-        return "EcoEnchants/${plugin.description.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
+        return "EcoEnchants/${plugin.pluginMeta.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
                 "Java/${System.getProperty("java.version")}"
     }
 

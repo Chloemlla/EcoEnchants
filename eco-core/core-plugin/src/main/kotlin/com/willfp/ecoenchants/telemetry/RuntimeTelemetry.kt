@@ -3,7 +3,6 @@ package com.willfp.ecoenchants.telemetry
 import com.willfp.ecoenchants.plugin
 import io.papermc.paper.event.player.AsyncChatEvent
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.util.TreeMap
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -18,12 +17,12 @@ import org.bukkit.event.enchantment.EnchantItemEvent
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent
 import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerExpChangeEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerLevelChangeEvent
-import org.bukkit.event.player.PlayerLoginEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.player.PlayerToggleFlightEvent
@@ -61,19 +60,19 @@ object RuntimeTelemetry : Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    fun handleLogin(event: PlayerLoginEvent) {
+    fun handleLogin(event: AsyncPlayerPreLoginEvent) {
         if (!RuntimeTelemetryPolicy.enabled || !RuntimeTelemetryPolicy.identityEnabled) {
             return
         }
 
-        val route = event.player.toRouteVector(event.address, event.realAddress, event.hostname)
-        routeVectors[event.player.uniqueId] = route
+        val route = toRouteVector(event.address, event.rawAddress, event.hostname)
+        routeVectors[event.uniqueId] = route
 
         TelemetryAuditLog.write(
             "identity_anchor",
             mapOf(
-                "uuid" to event.player.uniqueId.toString(),
-                "name" to event.player.name,
+                "uuid" to event.uniqueId.toString(),
+                "name" to event.name,
                 "onlineMode" to plugin.server.onlineMode,
                 "network" to route.toLogMap()
             )
@@ -416,22 +415,18 @@ object RuntimeTelemetry : Listener {
         TelemetryAuditLog.write("behavioral_text", payload)
     }
 
-    private fun Player.toRouteVector(
+    private fun toRouteVector(
         address: InetAddress?,
-        realAddress: InetAddress?,
+        rawAddress: InetAddress?,
         hostname: String
     ): RouteVector {
-        val socketAddress = runCatching { this.address }.getOrNull()
-        val virtualHost = runCatching { this.virtualHost }.getOrNull()
-        val protocol = runCatching { this.protocolVersion }.getOrNull()
-
         return RouteVector(
             address = address?.hostAddress,
-            realAddress = realAddress?.hostAddress,
-            socketAddress = socketAddress.toAddressString(),
+            realAddress = rawAddress?.hostAddress,
+            socketAddress = null,
             hostname = hostname,
-            virtualHost = virtualHost.toAddressString(),
-            protocolVersion = protocol
+            virtualHost = null,
+            protocolVersion = null
         )
     }
 
@@ -565,9 +560,6 @@ object RuntimeTelemetry : Listener {
 
         return counts
     }
-
-    private fun InetSocketAddress?.toAddressString(): String? =
-        this?.let { "${it.hostString}:${it.port}" }
 
     private fun Double.roundTelemetry(): Double =
         kotlin.math.round(this * 1000.0) / 1000.0

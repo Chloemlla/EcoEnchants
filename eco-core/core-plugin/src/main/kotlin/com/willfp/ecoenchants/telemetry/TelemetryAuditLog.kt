@@ -68,7 +68,7 @@ object TelemetryAuditLog {
         }
 
         val salt = RuntimeTelemetryPolicy.hashSalt.ifBlank {
-            "${plugin.description.name}:${plugin.server.name}:${plugin.server.port}"
+            "${plugin.pluginMeta.name}:${plugin.server.name}:${plugin.server.port}"
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest("$salt:$value".toByteArray(StandardCharsets.UTF_8))

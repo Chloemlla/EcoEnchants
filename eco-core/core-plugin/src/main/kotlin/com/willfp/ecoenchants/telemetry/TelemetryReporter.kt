@@ -182,7 +182,7 @@ object TelemetryReporter {
                 .header("Idempotency-Key", batchId)
                 .header("X-Eco-Product-Id", BackendApiPolicy.PRODUCT_ID)
                 .header("X-Eco-Installation-Id", OnlineLicenseGate.installationId())
-                .header("X-Eco-Plugin-Version", plugin.description.version)
+                .header("X-Eco-Plugin-Version", plugin.pluginMeta.version)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
 
             val token = (OnlineLicenseGate.lastResult as? LicenseCheckResult.Valid)?.activationToken
@@ -219,7 +219,7 @@ object TelemetryReporter {
             "installationId" to OnlineLicenseGate.installationId(),
             "activationId" to license?.activationId,
             "plugin" to mapOf(
-                "version" to plugin.description.version,
+                "version" to plugin.pluginMeta.version,
                 "channel" to BackendApiPolicy.channel
             ),
             "server" to mapOf(
@@ -244,7 +244,7 @@ object TelemetryReporter {
     }
 
     private fun userAgent(): String =
-        "EcoEnchants/${plugin.description.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
+        "EcoEnchants/${plugin.pluginMeta.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
                 "Java/${System.getProperty("java.version")}"
 }
 

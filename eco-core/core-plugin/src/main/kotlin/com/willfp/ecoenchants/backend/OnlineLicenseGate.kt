@@ -99,7 +99,7 @@ object OnlineLicenseGate {
                 $serverNameField
               },
               "plugin":{
-                "version":"${json(plugin.description.version)}",
+                "version":"${json(plugin.pluginMeta.version)}",
                 "channel":"${json(BackendApiPolicy.channel)}"
                 $fingerprintField
               }
@@ -154,7 +154,7 @@ object OnlineLicenseGate {
     }
 
     private fun userAgent(): String {
-        return "EcoEnchants/${plugin.description.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
+        return "EcoEnchants/${plugin.pluginMeta.version} ${plugin.server.name}/${plugin.server.bukkitVersion} " +
                 "Java/${System.getProperty("java.version")}"
     }
 
