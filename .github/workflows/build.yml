@@ -55,7 +55,7 @@ jobs:
           retention-days: 14
       - name: Prepare release metadata
         id: release_metadata
-        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/advanced' }}
         shell: bash
         run: |
           VERSION_NAME="$(sed -n 's/^version=//p' gradle.properties | head -n 1)"
@@ -86,7 +86,7 @@ jobs:
             exit 1
           fi
       - name: Automatic release
-        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/advanced' }}
         uses: softprops/action-gh-release@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
