@@ -124,7 +124,7 @@ EcoEnchants 这类插件适合售卖：
 license:
   key: ""
   installation-id: "uuid-generated-on-first-run"
-  api-url: "https://license.example.com"
+  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
   channel: "stable"
   timeout-ms: 3000
   offline-grace-hours: 72
@@ -240,7 +240,7 @@ license:
 license:
   enabled: true
   key: ""
-  api-url: "https://license.example.com"
+  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
   channel: "stable"
   timeout-ms: 3000
   offline-grace-hours: 72
@@ -263,7 +263,7 @@ license:
 
 ### 6.1 基础约定
 
-- Base URL: `https://license.example.com/api`
+- Base URL: `https://tts.chloemlla.com/api/ecoenchants`
 - API version: `/v1`
 - Content-Type: `application/json; charset=utf-8`
 - 所有接口必须使用 HTTPS。

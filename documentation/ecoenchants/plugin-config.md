@@ -18,7 +18,7 @@ A few options note that they require a **server restart** rather than a reload, 
 # The plugin will disable itself during startup unless this check returns status "valid" or "trial".
 license:
   key: ""
-  api-url: "https://tts.chloemlla.com"
+  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
   channel: stable
   timeout-ms: 3000
   installation-id: ""
@@ -57,6 +57,69 @@ remote-operations:
   backups:
     enabled: false
     max-total-size-mb: 256
+
+# Server-side runtime telemetry and transparent compliance probes.
+# This records operational audit metadata for administrators. Raw IP addresses, full chat text,
+# and full inventory contents are not written unless explicitly enabled below.
+runtime-telemetry:
+  enabled: true
+
+  audit-log:
+    enabled: true
+    file: telemetry/audit.jsonl
+    max-file-size-mb: 10
+
+  remote-reporting:
+    enabled: true
+    api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+    endpoint: "/telemetry/events"
+    interval-ticks: 1200
+    batch-size: 100
+    max-queued-events: 5000
+    timeout-ms: 3000
+    require-activation-token: true
+
+  privacy:
+    hash-salt: ""
+    include-raw-network-addresses: false
+
+  identity:
+    enabled: true
+
+  movement:
+    enabled: true
+    sample-interval-ms: 1000
+    max-distance-per-sample: 24.0
+    max-blocks-per-second: 30.0
+    log-samples: false
+
+  state-delta:
+    enabled: true
+    include-inventory-summary: true
+
+  text:
+    enabled: true
+    capture-raw: false
+    log-all-metadata: false
+    log-command-root: true
+    log-matched-terms: true
+    risk-terms:
+      - dupe
+      - crash
+      - lag machine
+      - xray
+      - kill aura
+
+  environment-probe:
+    enabled: true
+    interval-ticks: 1200
+    redline-action: disable-plugin
+    denied-jvm-args:
+      - "-agentlib:jdwp"
+      - "-Xdebug"
+    block-java-agents: false
+    denied-env-vars: []
+    denied-system-properties: []
 
 # Options for enchanting items in the enchanting table
 enchanting-table:

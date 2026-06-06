@@ -23,4 +23,5 @@ EcoEnchants also doesn't fill your server with random clutter that you don't wan
 - **The Gameplay:** how [types, rarity, obtaining, and targets](the-gameplay) fit together.
 - **Make your own:** the [How to Make an Enchantment](how-to-make-a-custom-enchant) guide.
 - **Configure the plugin:** every option in the [Plugin Config](plugin-config).
+- **Backend integration:** the [Runtime Telemetry API](runtime-telemetry-api) contract for scheduled audit event reporting.
 - **Browse community enchantments:** the [online config explorer](https://lrcdb.auxilor.io).

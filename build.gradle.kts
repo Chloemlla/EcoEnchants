@@ -13,11 +13,18 @@ group = "com.willfp"
 version = findProperty("version")!!
 val libreforgeVersion = findProperty("libreforge-version")
 val ecoVersion = findProperty("eco-version")
+val vineflowerVersion = findProperty("vineflower-version") ?: "1.12.0"
 
 val embeddedLibreforge by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
     isTransitive = false
+}
+
+val decompiler by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = true
 }
 
 base {
@@ -33,12 +40,69 @@ dependencies {
     implementation(project(":eco-core:core-nms:v26_1_2", configuration = "shadow"))
 
     embeddedLibreforge("com.willfp:libreforge:${libreforgeVersion!!}:shadow@jar")
+    decompiler("org.vineflower:vineflower:$vineflowerVersion")
 }
 
 tasks {
     shadowJar {
         from(embeddedLibreforge) {
             rename { "libreforge-$libreforgeVersion-shadow.jar" }
+        }
+    }
+
+    val nativeServerClassGlobs = listOf(
+        "com/destroystokyo/**",
+        "com/mojang/**",
+        "io/papermc/**",
+        "net/minecraft/**",
+        "org/bukkit/**",
+        "org/spigotmc/**"
+    )
+
+    val pluginDecompileClasses = layout.buildDirectory.dir("decompile/input/plugin-classes")
+
+    val preparePluginDecompileClasses by registering(Sync::class) {
+        group = "decompilation"
+        description = "Copies only EcoEnchants plugin classes from the shaded jar for isolated decompilation."
+
+        dependsOn(shadowJar)
+
+        from(shadowJar.flatMap { it.archiveFile }.map { zipTree(it) }) {
+            include("com/willfp/ecoenchants/**")
+            exclude("com/willfp/ecoenchants/libreforge/loader/**")
+            exclude(nativeServerClassGlobs)
+            includeEmptyDirs = false
+        }
+
+        into(pluginDecompileClasses)
+    }
+
+    register<JavaExec>("decompilePlugin") {
+        group = "decompilation"
+        description = "Decompiles EcoEnchants plugin classes into build/decompiled/plugin without touching source files."
+
+        dependsOn(preparePluginDecompileClasses)
+
+        classpath = decompiler
+        mainClass.set("org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler")
+        jvmArgs("-Xmx1g")
+
+        val outputDir = layout.buildDirectory.dir("decompiled/plugin")
+
+        inputs.dir(pluginDecompileClasses)
+        outputs.dir(outputDir)
+
+        doFirst {
+            delete(outputDir)
+            outputDir.get().asFile.mkdirs()
+            args(
+                "-dgs=1",
+                "-asc=1",
+                "-rsy=1",
+                "-log=WARN",
+                pluginDecompileClasses.get().asFile.absolutePath,
+                outputDir.get().asFile.absolutePath
+            )
         }
     }
 }
