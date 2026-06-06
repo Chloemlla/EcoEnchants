@@ -5,6 +5,9 @@
 -dontpreverify
 -ignorewarnings
 -dontwarn **
+-dontnote net.kyori.ansi.**
+-dontnote com.willfp.ecoenchants.ReflectionUtilKt
+-dontnote com.willfp.ecoenchants.proxy.**
 
 -allowaccessmodification
 -overloadaggressively
@@ -17,23 +20,28 @@
 -keep class com.willfp.ecoenchants.EcoEnchantsPlugin { *; }
 
 # eco.yml resolves version-specific proxies from this package by name.
--keep class com.willfp.ecoenchants.proxy.** { *; }
--keep interface com.willfp.ecoenchants.**Proxy { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.proxy.** { *; }
+-keep,includedescriptorclasses interface com.willfp.ecoenchants.**Proxy { *; }
+
+# The relocated libreforge loader uses its own config/category model.
+-keep,includedescriptorclasses class com.willfp.ecoenchants.libreforge.loader.** { *; }
 
 # Public API used by plugins that compileOnly depend on EcoEnchants.
--keep class com.willfp.ecoenchants.enchant.EcoEnchants { *; }
--keep interface com.willfp.ecoenchants.enchant.EcoEnchant { *; }
--keep interface com.willfp.ecoenchants.enchant.EcoEnchantLike { *; }
--keep class com.willfp.ecoenchants.enchant.EcoEnchantLevel { *; }
--keep class com.willfp.ecoenchants.enchant.VanillaEnchantments { *; }
--keep class com.willfp.ecoenchants.display.EnchantmentFormattingKt { public *; }
--keep class com.willfp.ecoenchants.target.EnchantFinder { *; }
--keep class com.willfp.ecoenchants.target.EnchantmentTargets { *; }
--keep interface com.willfp.ecoenchants.target.EnchantmentTarget { *; }
--keep class com.willfp.ecoenchants.type.EnchantmentTypes { *; }
--keep class com.willfp.ecoenchants.type.EnchantmentType { *; }
--keep class com.willfp.ecoenchants.rarity.EnchantmentRarities { *; }
--keep class com.willfp.ecoenchants.rarity.EnchantmentRarity { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.enchant.EcoEnchants { *; }
+-keep,includedescriptorclasses interface com.willfp.ecoenchants.enchant.EcoEnchant { *; }
+-keep,includedescriptorclasses interface com.willfp.ecoenchants.enchant.EcoEnchantLike { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.enchant.EcoEnchantLevel { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.enchant.VanillaEnchantmentsKt { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.enchant.VanillaEnchantmentData { *; }
+-keep,includedescriptorclasses interface com.willfp.ecoenchants.enchant.EcoCraftEnchantmentManagerProxy { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.display.EnchantmentFormattingKt { public *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.target.EnchantFinder { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.target.EnchantmentTargets { *; }
+-keep,includedescriptorclasses interface com.willfp.ecoenchants.target.EnchantmentTarget { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.type.EnchantmentTypes { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.type.EnchantmentType { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.rarity.EnchantmentRarities { *; }
+-keep,includedescriptorclasses class com.willfp.ecoenchants.rarity.EnchantmentRarity { *; }
 
 # Bukkit event discovery is annotation based.
 -keepclassmembers class * {

@@ -37,7 +37,7 @@ val obfuscator by configurations.creating {
 val obfuscationLibraries by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
-    isTransitive = true
+    isTransitive = false
 }
 
 base {
@@ -174,14 +174,14 @@ tasks {
                 ?.sortedBy { it.name }
                 .orEmpty()
                 .joinToString(System.lineSeparator()) {
-                    "-libraryjars ${it.proguardPath()}(!**.jar;!module-info.class)"
+                    "-libraryjars ${it.proguardPath()}(!**.jar;!module-info.class;!classes/module-info.class)"
                 }
             val dependencyLibraries = obfuscationLibraries.files
                 .filter { it.isFile }
                 .distinctBy { it.absolutePath }
                 .sortedBy { it.name }
                 .joinToString(System.lineSeparator()) {
-                    "-libraryjars ${it.proguardPath()}"
+                    "-libraryjars ${it.proguardPath()}(!META-INF/versions/**;!module-info.class)"
                 }
 
             delete(outputJar)

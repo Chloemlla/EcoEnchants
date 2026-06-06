@@ -48,9 +48,7 @@ jobs:
         with:
           name: EcoEnchants-${{ github.sha }}
           path: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
-            !build/libs/*-javadoc.jar
+            build/libs/*-obfuscated.jar
           if-no-files-found: error
           retention-days: 14
       - name: Prepare release metadata
@@ -79,10 +77,10 @@ jobs:
           fi
 
           mkdir -p build/release
-          find build/libs -maxdepth 1 -type f -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -exec cp {} build/release/ \;
+          find build/libs -maxdepth 1 -type f -name "*-obfuscated.jar" -exec cp {} build/release/ \;
 
           if ! ls build/release/*.jar >/dev/null 2>&1; then
-            echo "No release JARs found in build/libs" >&2
+            echo "No obfuscated release JARs found in build/libs" >&2
             exit 1
           fi
       - name: Automatic release
