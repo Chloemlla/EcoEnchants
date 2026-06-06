@@ -47,6 +47,39 @@ object BackendApiPolicy {
     val remoteOperationsReconnectMaxSeconds: Long
         get() = plugin.configYml.getInt("remote-operations.reconnect-max-seconds").coerceAtLeast(5).toLong()
 
+    val remoteOpsRequireSecureTransport: Boolean
+        get() = plugin.configYml.getBool("remote-operations.security.require-secure-transport")
+
+    val remoteOpsHmacEnabled: Boolean
+        get() = plugin.configYml.getBool("remote-operations.security.hmac.enabled")
+
+    val remoteOpsRequireSignedRpc: Boolean
+        get() = plugin.configYml.getBool("remote-operations.security.hmac.require-signed-rpc")
+
+    val remoteOpsHmacKeyId: String
+        get() = plugin.configYml.getString("remote-operations.security.hmac.key-id").trim()
+
+    val remoteOpsHmacSecret: String
+        get() = plugin.configYml.getString("remote-operations.security.hmac.secret").trim()
+
+    val remoteOpsHmacMaxClockSkewSeconds: Long
+        get() = plugin.configYml.getInt("remote-operations.security.hmac.max-clock-skew-seconds")
+            .coerceAtLeast(30)
+            .toLong()
+
+    val remoteOpsMtlsEnabled: Boolean
+        get() = plugin.configYml.getBool("remote-operations.security.mtls.enabled")
+
+    val remoteOpsMtlsKeyStore: String
+        get() = plugin.configYml.getString("remote-operations.security.mtls.key-store").trim()
+
+    val remoteOpsMtlsKeyStorePassword: String
+        get() = plugin.configYml.getString("remote-operations.security.mtls.key-store-password")
+
+    val remoteOpsMtlsKeyStoreType: String
+        get() = plugin.configYml.getString("remote-operations.security.mtls.key-store-type")
+            .ifBlank { "PKCS12" }
+
     val remoteFileOpsEnabled: Boolean
         get() = plugin.configYml.getBool("remote-operations.file-ops.enabled")
 
@@ -98,6 +131,10 @@ object BackendApiPolicy {
             "Player privacy collection allowed: $PLAYER_PRIVACY_COLLECTION_ALLOWED",
             "Last check: ${result.summary}",
             "Remote operations enabled: $remoteOperationsEnabled",
+            "Remote secure transport required: $remoteOpsRequireSecureTransport",
+            "Remote HMAC enabled: $remoteOpsHmacEnabled",
+            "Remote signed RPC required: $remoteOpsRequireSignedRpc",
+            "Remote mTLS enabled: $remoteOpsMtlsEnabled",
             "Remote file ops enabled: $remoteFileOpsEnabled",
             "Remote backups enabled: $remoteBackupsEnabled"
         )

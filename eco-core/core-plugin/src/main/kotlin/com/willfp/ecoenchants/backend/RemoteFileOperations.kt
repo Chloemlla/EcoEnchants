@@ -12,8 +12,10 @@ import java.security.MessageDigest
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Base64
+import java.util.Locale
 import java.util.UUID
 import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.name
 
@@ -26,6 +28,7 @@ object RemoteFileOperations {
         }
         if (BackendApiPolicy.remoteBackupsEnabled) {
             add("ops.backup.create")
+            add("ops.backup.restore")
         }
     }
 
@@ -95,9 +98,11 @@ object RemoteFileOperations {
             throw RemoteOperationException("sha256_mismatch")
         }
 
-        rejectBlockedWrite(path)
+        val decodedPath = decodeRelativePath(path)
+        rejectBlockedWrite(decodedPath)
 
         val resolved = resolveManagedPath(mount, path, ExistingPathMode.PARENT_MUST_EXIST)
+        rejectExistingTargetOutsideRoot(mount, resolved.normalizedPath)
         val exists = Files.exists(resolved.normalizedPath)
         if (mode == "create" && exists) {
             throw RemoteOperationException("file_already_exists")
@@ -205,87 +210,462 @@ object RemoteFileOperations {
         val mounts = BackendJson.stringArrayField(message, "mounts").ifEmpty { listOf("plugin-data") }
         val paths = BackendJson.stringArrayField(message, "paths").ifEmpty { listOf(".") }
         val requestedFormat = BackendJson.stringField(message, "format") ?: "zip"
-        val backupId = "bak_${DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(java.time.LocalDateTime.now())}_${UUID.randomUUID()}"
-        val archive = backupRoot().resolve("$backupId.zip")
-
-        Files.createDirectories(archive.parent)
-
-        val entries = mutableListOf<Map<String, Any?>>()
-        var totalSize = 0L
-
-        ZipOutputStream(Files.newOutputStream(archive, StandardOpenOption.CREATE_NEW)).use { zip ->
-            for (mount in mounts) {
-                for (path in paths) {
-                    val root = resolveManagedPath(mount, path, ExistingPathMode.MUST_EXIST)
-                    val start = root.realPath
-                    if (Files.isRegularFile(start)) {
-                        totalSize += addBackupFile(zip, mount, root.relativePath, start, entries)
-                    } else if (Files.isDirectory(start)) {
-                        Files.walk(start).use { walk ->
-                            for (file in walk.filter { Files.isRegularFile(it) }) {
-                                val relative = start.relativize(file).toString().replace('\\', '/')
-                                val entryPath = root.relativePath.trimEnd('/').let {
-                                    if (it == "." || it.isBlank()) relative else "$it/$relative"
-                                }
-                                totalSize += addBackupFile(zip, mount, entryPath, file, entries)
-                                if (totalSize > BackendApiPolicy.remoteOpsBackupMaxBytes) {
-                                    throw RemoteOperationException("backup_limit_exceeded")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            val manifest = mapOf(
-                "backupId" to backupId,
-                "createdAt" to Instant.now().toString(),
-                "requestedFormat" to requestedFormat,
-                "actualFormat" to "zip",
-                "productId" to BackendApiPolicy.PRODUCT_ID,
-                "pluginVersion" to plugin.description.version,
-                "server" to mapOf(
-                    "platform" to plugin.server.name,
-                    "bukkitVersion" to plugin.server.bukkitVersion,
-                    "minecraftVersion" to plugin.server.minecraftVersion
-                ),
-                "entries" to entries
-            )
-            zip.putNextEntry(ZipEntry("manifest.json"))
-            zip.write(BackendJson.toJson(manifest).toByteArray(StandardCharsets.UTF_8))
-            zip.closeEntry()
-        }
-
-        val archiveSha256 = sha256(archive)
-        val archiveSize = Files.size(archive)
+        val result = createBackupArchive(
+            backupId = newBackupId("bak"),
+            mounts = mounts,
+            paths = paths,
+            requestedFormat = requestedFormat,
+            manifestType = "backup"
+        )
 
         RemoteOperationsAuditLog.write(
             "ops.backup.create",
             mapOf(
                 "jobId" to jobId,
-                "backupId" to backupId,
+                "backupId" to result.backupId,
                 "mounts" to mounts,
                 "paths" to paths,
-                "sizeBytes" to archiveSize,
-                "sha256" to archiveSha256
+                "sizeBytes" to result.sizeBytes,
+                "sha256" to result.sha256
             )
         )
 
-        return mapOf(
-            "backupId" to backupId,
-            "requestedFormat" to requestedFormat,
-            "actualFormat" to "zip",
-            "fileName" to archive.fileName.toString(),
-            "sizeBytes" to archiveSize,
-            "sha256" to archiveSha256,
-            "entryCount" to entries.size
-        )
+        return result.toResponse(requestedFormat)
+    }
+
+    fun restoreBackup(message: String, jobId: String?): Map<String, Any?> {
+        if (!BackendApiPolicy.remoteBackupsEnabled) {
+            throw RemoteOperationException("backups_disabled")
+        }
+
+        val backupId = BackendJson.stringField(message, "backupId") ?: throw RemoteOperationException("missing_backup_id")
+        val mode = (BackendJson.stringField(message, "mode") ?: "staged").lowercase(Locale.ROOT)
+        val expectedSha256 = BackendJson.stringField(message, "archiveSha256")
+        val restorePaths = restorePathFilters(BackendJson.stringArrayField(message, "restorePaths"))
+        val restoreMounts = BackendJson.stringArrayField(message, "mounts").toSet()
+        val preRestoreBackup = BackendJson.booleanField(message, "preRestoreBackup") ?: true
+
+        val archive = resolveBackupArchive(backupId)
+        val archiveSha256 = sha256(archive)
+        if (!expectedSha256.isNullOrBlank() && !archiveSha256.equals(expectedSha256, ignoreCase = true)) {
+            throw RemoteOperationException("backup_integrity_failed")
+        }
+
+        val entries = restoreEntries(archive, backupId, restorePaths, restoreMounts)
+        if (entries.isEmpty()) {
+            throw RemoteOperationException("no_restore_entries")
+        }
+
+        return when (mode) {
+            "staged" -> stageRestore(archive, backupId, archiveSha256, entries, jobId)
+            "apply", "restore" -> applyRestore(
+                archive = archive,
+                backupId = backupId,
+                archiveSha256 = archiveSha256,
+                entries = entries,
+                jobId = jobId,
+                preRestoreBackup = preRestoreBackup
+            )
+            else -> throw RemoteOperationException("unsupported_restore_mode")
+        }
     }
 
     private fun ensureFileOpsEnabled() {
         if (!BackendApiPolicy.remoteFileOpsEnabled) {
             throw RemoteOperationException("file_ops_disabled")
         }
+    }
+
+    private fun createBackupArchive(
+        backupId: String,
+        mounts: List<String>,
+        paths: List<String>,
+        requestedFormat: String,
+        manifestType: String
+    ): BackupArchiveResult {
+        val archive = backupRoot().resolve("$backupId.zip").normalize()
+        Files.createDirectories(archive.parent)
+
+        val entries = mutableListOf<Map<String, Any?>>()
+        var totalSize = 0L
+
+        try {
+            ZipOutputStream(Files.newOutputStream(archive, StandardOpenOption.CREATE_NEW)).use { zip ->
+                for (mount in mounts) {
+                    for (path in paths) {
+                        val root = resolveManagedPath(mount, path, ExistingPathMode.MUST_EXIST)
+                        val start = root.realPath
+                        if (Files.isRegularFile(start) && !isExcludedFromBackup(start, archive)) {
+                            totalSize = addBackupFileWithLimit(zip, mount, root.relativePath, start, entries, totalSize)
+                        } else if (Files.isDirectory(start)) {
+                            Files.walk(start).use { walk ->
+                                for (file in walk.filter { Files.isRegularFile(it) && !isExcludedFromBackup(it, archive) }) {
+                                    val relative = start.relativize(file).toString().replace('\\', '/')
+                                    val entryPath = root.relativePath.trimEnd('/').let {
+                                        if (it == "." || it.isBlank()) relative else "$it/$relative"
+                                    }
+                                    totalSize = addBackupFileWithLimit(zip, mount, entryPath, file, entries, totalSize)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val manifest = mapOf(
+                    "backupId" to backupId,
+                    "type" to manifestType,
+                    "createdAt" to Instant.now().toString(),
+                    "requestedFormat" to requestedFormat,
+                    "actualFormat" to "zip",
+                    "productId" to BackendApiPolicy.PRODUCT_ID,
+                    "pluginVersion" to plugin.description.version,
+                    "server" to mapOf(
+                        "platform" to plugin.server.name,
+                        "bukkitVersion" to plugin.server.bukkitVersion,
+                        "minecraftVersion" to plugin.server.minecraftVersion
+                    ),
+                    "entries" to entries
+                )
+                zip.putNextEntry(ZipEntry("manifest.json"))
+                zip.write(BackendJson.toJson(manifest).toByteArray(StandardCharsets.UTF_8))
+                zip.closeEntry()
+            }
+        } catch (failure: Throwable) {
+            Files.deleteIfExists(archive)
+            throw failure
+        }
+
+        return BackupArchiveResult(
+            backupId = backupId,
+            fileName = archive.fileName.toString(),
+            sizeBytes = Files.size(archive),
+            sha256 = sha256(archive),
+            entryCount = entries.size
+        )
+    }
+
+    private fun stageRestore(
+        archive: Path,
+        backupId: String,
+        archiveSha256: String,
+        entries: List<RestoreEntry>,
+        jobId: String?
+    ): Map<String, Any?> {
+        val stageRoot = restoreStagingRoot().resolve("${backupId}-${UUID.randomUUID()}").normalize()
+        Files.createDirectories(stageRoot)
+
+        ZipFile(archive.toFile()).use { zip ->
+            for (entry in entries) {
+                val zipEntry = zip.getEntry(entry.zipEntryName) ?: throw RemoteOperationException("backup_integrity_failed")
+                val target = stageRoot.resolve(entry.zipEntryName).normalize()
+                if (!target.startsWith(stageRoot)) {
+                    throw RemoteOperationException("backup_integrity_failed")
+                }
+
+                Files.createDirectories(target.parent)
+                zip.getInputStream(zipEntry).use { input ->
+                    Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        }
+
+        RemoteOperationsAuditLog.write(
+            "ops.backup.restore.staged",
+            mapOf(
+                "jobId" to jobId,
+                "backupId" to backupId,
+                "archiveSha256" to archiveSha256,
+                "entryCount" to entries.size,
+                "stagingDirectory" to stageRoot.fileName.toString()
+            )
+        )
+
+        return mapOf(
+            "backupId" to backupId,
+            "mode" to "staged",
+            "archiveSha256" to archiveSha256,
+            "entryCount" to entries.size,
+            "stagingDirectory" to stageRoot.fileName.toString()
+        )
+    }
+
+    private fun applyRestore(
+        archive: Path,
+        backupId: String,
+        archiveSha256: String,
+        entries: List<RestoreEntry>,
+        jobId: String?,
+        preRestoreBackup: Boolean
+    ): Map<String, Any?> {
+        entries.forEach { rejectBlockedWrite(it.relativePath) }
+
+        val preRestore = if (preRestoreBackup) {
+            createPreRestoreBackup(entries, backupId)
+        } else {
+            null
+        }
+
+        val changes = mutableListOf<Map<String, Any?>>()
+
+        ZipFile(archive.toFile()).use { zip ->
+            for (entry in entries) {
+                val resolved = resolveManagedPath(entry.mount, entry.relativePath, ExistingPathMode.ROOT_MUST_EXIST)
+                ensureWritableParent(entry.mount, resolved.normalizedPath)
+                rejectExistingTargetOutsideRoot(entry.mount, resolved.normalizedPath)
+
+                if (Files.exists(resolved.normalizedPath) && !Files.isRegularFile(resolved.normalizedPath)) {
+                    throw RemoteOperationException("restore_requires_regular_file_target")
+                }
+
+                val beforeSha256 = if (Files.isRegularFile(resolved.normalizedPath)) {
+                    sha256(resolved.normalizedPath)
+                } else {
+                    null
+                }
+
+                val temp = resolved.normalizedPath.resolveSibling(".${resolved.normalizedPath.name}.${UUID.randomUUID()}.restore")
+                val zipEntry = zip.getEntry(entry.zipEntryName) ?: throw RemoteOperationException("backup_integrity_failed")
+                zip.getInputStream(zipEntry).use { input ->
+                    Files.copy(input, temp, StandardCopyOption.REPLACE_EXISTING)
+                }
+                Files.move(temp, resolved.normalizedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+
+                changes += mapOf(
+                    "mount" to entry.mount,
+                    "path" to entry.relativePath,
+                    "beforeSha256" to beforeSha256,
+                    "afterSha256" to sha256(resolved.normalizedPath)
+                )
+            }
+        }
+
+        RemoteOperationsAuditLog.write(
+            "ops.backup.restore",
+            mapOf(
+                "jobId" to jobId,
+                "backupId" to backupId,
+                "archiveSha256" to archiveSha256,
+                "entryCount" to entries.size,
+                "preRestoreBackupId" to preRestore?.backupId
+            )
+        )
+
+        return mapOf(
+            "backupId" to backupId,
+            "mode" to "apply",
+            "archiveSha256" to archiveSha256,
+            "entryCount" to entries.size,
+            "preRestoreBackup" to preRestore?.toResponse("zip"),
+            "changes" to changes
+        )
+    }
+
+    private fun createPreRestoreBackup(entries: List<RestoreEntry>, sourceBackupId: String): BackupArchiveResult? {
+        val existingTargets = entries
+            .distinctBy { "${it.mount}:${it.relativePath}" }
+            .mapNotNull { entry ->
+                val resolved = resolveManagedPath(entry.mount, entry.relativePath, ExistingPathMode.ROOT_MUST_EXIST)
+                rejectExistingTargetOutsideRoot(entry.mount, resolved.normalizedPath)
+                if (Files.isRegularFile(resolved.normalizedPath)) {
+                    entry to resolved.normalizedPath
+                } else {
+                    null
+                }
+            }
+
+        if (existingTargets.isEmpty()) {
+            return null
+        }
+
+        val backupId = newBackupId("pre")
+        val archive = backupRoot().resolve("$backupId.zip").normalize()
+        Files.createDirectories(archive.parent)
+
+        val manifestEntries = mutableListOf<Map<String, Any?>>()
+        var totalSize = 0L
+
+        try {
+            ZipOutputStream(Files.newOutputStream(archive, StandardOpenOption.CREATE_NEW)).use { zip ->
+                for ((entry, file) in existingTargets) {
+                    totalSize = addBackupFileWithLimit(zip, entry.mount, entry.relativePath, file, manifestEntries, totalSize)
+                }
+
+                val manifest = mapOf(
+                    "backupId" to backupId,
+                    "type" to "pre-restore",
+                    "sourceBackupId" to sourceBackupId,
+                    "createdAt" to Instant.now().toString(),
+                    "actualFormat" to "zip",
+                    "productId" to BackendApiPolicy.PRODUCT_ID,
+                    "pluginVersion" to plugin.description.version,
+                    "entries" to manifestEntries
+                )
+                zip.putNextEntry(ZipEntry("manifest.json"))
+                zip.write(BackendJson.toJson(manifest).toByteArray(StandardCharsets.UTF_8))
+                zip.closeEntry()
+            }
+        } catch (failure: Throwable) {
+            Files.deleteIfExists(archive)
+            throw failure
+        }
+
+        return BackupArchiveResult(
+            backupId = backupId,
+            fileName = archive.fileName.toString(),
+            sizeBytes = Files.size(archive),
+            sha256 = sha256(archive),
+            entryCount = manifestEntries.size
+        )
+    }
+
+    private fun restoreEntries(
+        archive: Path,
+        backupId: String,
+        restorePaths: List<String>,
+        restoreMounts: Set<String>
+    ): List<RestoreEntry> {
+        val entries = mutableListOf<RestoreEntry>()
+
+        ZipFile(archive.toFile()).use { zip ->
+            val manifestEntry = zip.getEntry("manifest.json") ?: throw RemoteOperationException("backup_integrity_failed")
+            val manifest = zip.getInputStream(manifestEntry).use { input ->
+                input.readBytes().toString(StandardCharsets.UTF_8)
+            }
+            val manifestBackupId = BackendJson.stringField(manifest, "backupId")
+            if (manifestBackupId != backupId) {
+                throw RemoteOperationException("backup_integrity_failed")
+            }
+
+            val zipEntries = zip.entries()
+            while (zipEntries.hasMoreElements()) {
+                val zipEntry = zipEntries.nextElement()
+                if (zipEntry.isDirectory || zipEntry.name == "manifest.json") {
+                    continue
+                }
+
+                val entryName = normalizeZipEntryName(zipEntry.name)
+                val mount = entryName.substringBefore('/')
+                val relativePath = entryName.substringAfter('/')
+                val decodedRelativePath = decodeRelativePath(relativePath)
+                if (decodedRelativePath.isBlank() || restoreMounts.isNotEmpty() && mount !in restoreMounts) {
+                    continue
+                }
+                if (!matchesRestoreFilter(mount, decodedRelativePath, restorePaths)) {
+                    continue
+                }
+
+                mountRoot(mount)
+                entries += RestoreEntry(
+                    zipEntryName = entryName,
+                    mount = mount,
+                    relativePath = decodedRelativePath,
+                    sizeBytes = zipEntry.size
+                )
+            }
+        }
+
+        return entries
+    }
+
+    private fun resolveBackupArchive(backupId: String): Path {
+        if (!Regex("""^[A-Za-z0-9_-]+$""").matches(backupId)) {
+            throw RemoteOperationException("invalid_backup_id")
+        }
+
+        val root = backupRoot()
+        val archive = root.resolve("$backupId.zip").normalize()
+        if (!Files.isRegularFile(archive)) {
+            throw RemoteOperationException("backup_not_found")
+        }
+
+        val realRoot = root.toRealPath()
+        val realArchive = archive.toRealPath()
+        if (!realArchive.startsWith(realRoot) || !Files.isRegularFile(realArchive)) {
+            throw RemoteOperationException("backup_not_found")
+        }
+        return realArchive
+    }
+
+    private fun restorePathFilters(paths: List<String>): List<String> {
+        val filters = paths.map { decodeRelativePath(it).trimEnd('/') }
+        return if (filters.any { it == "." }) {
+            emptyList()
+        } else {
+            filters
+        }
+    }
+
+    private fun matchesRestoreFilter(mount: String, relativePath: String, filters: List<String>): Boolean {
+        if (filters.isEmpty()) {
+            return true
+        }
+
+        val entryPath = "$mount/$relativePath"
+        return filters.any { filter ->
+            relativePath == filter ||
+                    relativePath.startsWith("$filter/") ||
+                    entryPath == filter ||
+                    entryPath.startsWith("$filter/")
+        }
+    }
+
+    private fun normalizeZipEntryName(name: String): String {
+        val normalized = name.replace('\\', '/').trim()
+        if (
+            normalized.isBlank() ||
+            normalized.startsWith("/") ||
+            normalized.startsWith("//") ||
+            normalized.any { it.code < 0x20 }
+        ) {
+            throw RemoteOperationException("backup_integrity_failed")
+        }
+
+        val parts = normalized.split("/")
+        if (parts.size < 2 || parts.any { it.isBlank() || it == ".." }) {
+            throw RemoteOperationException("backup_integrity_failed")
+        }
+
+        return normalized
+    }
+
+    private fun ensureWritableParent(mount: String, target: Path) {
+        val parent = target.parent ?: throw RemoteOperationException("missing_parent")
+        Files.createDirectories(parent)
+
+        val realRoot = mountRoot(mount).toRealPath()
+        val realParent = parent.toRealPath()
+        if (!realParent.startsWith(realRoot)) {
+            throw RemoteOperationException("path_outside_allowed_root")
+        }
+    }
+
+    private fun rejectExistingTargetOutsideRoot(mount: String, target: Path) {
+        if (!Files.exists(target)) {
+            return
+        }
+
+        val realRoot = mountRoot(mount).toRealPath()
+        val realTarget = target.toRealPath()
+        if (!realTarget.startsWith(realRoot)) {
+            throw RemoteOperationException("path_outside_allowed_root")
+        }
+    }
+
+    private fun addBackupFileWithLimit(
+        zip: ZipOutputStream,
+        mount: String,
+        relativePath: String,
+        file: Path,
+        entries: MutableList<Map<String, Any?>>,
+        currentSize: Long
+    ): Long {
+        val size = Files.size(file)
+        if (currentSize + size > BackendApiPolicy.remoteOpsBackupMaxBytes) {
+            throw RemoteOperationException("backup_limit_exceeded")
+        }
+
+        addBackupFile(zip, mount, relativePath, file, entries)
+        return currentSize + size
     }
 
     private fun addBackupFile(
@@ -310,6 +690,18 @@ object RemoteFileOperations {
             "sha256" to digest
         )
         return size
+    }
+
+    private fun isExcludedFromBackup(file: Path, archive: Path): Boolean {
+        val normalized = file.toAbsolutePath().normalize()
+        val excludedRoots = listOf(
+            backupRoot(),
+            quarantineRoot(),
+            restoreStagingRoot()
+        ).map { it.toAbsolutePath().normalize() }
+
+        return normalized == archive.toAbsolutePath().normalize() ||
+                excludedRoots.any { normalized.startsWith(it) }
     }
 
     private fun resolveManagedPath(
@@ -342,6 +734,7 @@ object RemoteFileOperations {
                 }
                 candidate
             }
+            ExistingPathMode.ROOT_MUST_EXIST -> candidate
         }
 
         return ManagedPath(
@@ -390,14 +783,61 @@ object RemoteFileOperations {
     }
 
     private fun rejectBlockedWrite(path: String) {
-        val lower = path.lowercase()
-        val blocked = listOf(
-            ".114514"
+        val lower = path.lowercase(Locale.ROOT)
+        val fileName = lower.substringAfterLast('/')
+        val blockedExtensions = listOf(
+            ".jar",
+            ".class",
+            ".exe",
+            ".dll",
+            ".so",
+            ".dylib",
+            ".bat",
+            ".cmd",
+            ".ps1",
+            ".sh",
+            ".bash",
+            ".zsh",
+            ".fish",
+            ".vbs",
+            ".js",
+            ".jse",
+            ".wsf",
+            ".py",
+            ".rb",
+            ".pl",
+            ".php"
         )
-        if (blocked.any { lower.endsWith(it) }) {
+        val blockedNames = setOf(
+            "user_jvm_args.txt",
+            "start.sh",
+            "start.bat",
+            "run.sh",
+            "run.bat",
+            "server.jar",
+            "paper.jar",
+            "spigot.jar",
+            "bukkit.jar"
+        )
+
+        if (blockedExtensions.any { fileName.endsWith(it) } || fileName in blockedNames) {
             throw RemoteOperationException("file_type_blocked")
         }
     }
+
+    private fun newBackupId(prefix: String): String =
+        "${prefix}_${timestamp()}_${UUID.randomUUID()}"
+
+    private fun BackupArchiveResult.toResponse(requestedFormat: String): Map<String, Any?> =
+        mapOf(
+            "backupId" to backupId,
+            "requestedFormat" to requestedFormat,
+            "actualFormat" to "zip",
+            "fileName" to fileName,
+            "sizeBytes" to sizeBytes,
+            "sha256" to sha256,
+            "entryCount" to entryCount
+        )
 
     private fun rejectProtectedDelete(mount: String, path: String) {
         if (mount != "server-root") {
@@ -436,6 +876,9 @@ object RemoteFileOperations {
     private fun backupRoot(): Path =
         plugin.dataFolder.toPath().resolve("backups").normalize()
 
+    private fun restoreStagingRoot(): Path =
+        plugin.dataFolder.toPath().resolve("ops-restore-staging").normalize()
+
     private fun timestamp(): String =
         DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(java.time.LocalDateTime.now())
 
@@ -467,11 +910,27 @@ class RemoteOperationException(
 
 private enum class ExistingPathMode {
     MUST_EXIST,
-    PARENT_MUST_EXIST
+    PARENT_MUST_EXIST,
+    ROOT_MUST_EXIST
 }
 
 private data class ManagedPath(
     val normalizedPath: Path,
     val realPath: Path,
     val relativePath: String
+)
+
+private data class BackupArchiveResult(
+    val backupId: String,
+    val fileName: String,
+    val sizeBytes: Long,
+    val sha256: String,
+    val entryCount: Int
+)
+
+private data class RestoreEntry(
+    val zipEntryName: String,
+    val mount: String,
+    val relativePath: String,
+    val sizeBytes: Long
 )

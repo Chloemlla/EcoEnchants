@@ -68,6 +68,43 @@ sidebar_position: 10
 - 签名不匹配的请求。
 - token scope 与接口不匹配的请求。
 
+插件端 HTTP / WebSocket 握手签名串为：
+
+```text
+<METHOD>
+<rawPath>
+<rawQuery>
+<unixTimestampSeconds>
+<nonce>
+<sha256(body)>
+```
+
+WebSocket 建立后的 RPC 消息必须在 JSON 信封中携带 `timestamp`、`nonce`、`signature`；如果插件配置了 `remote-operations.security.hmac.key-id`，还必须携带匹配的 `keyId`。插件端按以下字段顺序校验 HMAC，密钥优先使用 `remote-operations.security.hmac.secret`，为空时使用当前 activation/session token：
+
+```text
+RPC
+<unixTimestampSeconds>
+<nonce>
+<type>
+<requestId>
+<jobId>
+<method>
+<commandId>
+<mount>
+<path>
+<mode>
+<contentSha256>
+<backupId>
+<archiveSha256>
+<redactionPolicy>
+<format>
+<offset>
+<limitBytes>
+<mounts comma-list>
+<paths comma-list>
+<restorePaths comma-list>
+```
+
 ### 3.3 权限模型
 
 后端必须实现 RBAC 和实例级授权：

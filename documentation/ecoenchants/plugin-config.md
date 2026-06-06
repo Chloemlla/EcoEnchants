@@ -38,6 +38,28 @@ remote-operations:
   reconnect-min-seconds: 5
   reconnect-max-seconds: 300
 
+  security:
+    # Reject remote operations over plain http/ws when enabled.
+    require-secure-transport: true
+
+    # HMAC protects registration, WebSocket handshakes, and inbound RPC messages
+    # from replayed or unsigned control traffic. If secret is blank, the plugin
+    # uses the activation/session token as the shared signing secret.
+    hmac:
+      enabled: true
+      require-signed-rpc: true
+      key-id: ""
+      secret: ""
+      max-clock-skew-seconds: 300
+
+    # Optional client certificate authentication for mTLS deployments.
+    # key-store should point to a PKCS12/JKS file readable by the server process.
+    mtls:
+      enabled: false
+      key-store: ""
+      key-store-password: ""
+      key-store-type: "PKCS12"
+
   audit-log:
     enabled: true
     file: security-audit.log
@@ -53,7 +75,7 @@ remote-operations:
     allow-permanent-delete: false
 
   # Backup creation writes zip archives into plugins/EcoEnchants/backups.
-  # Restore is intentionally not automatic; stage and review backup contents before applying.
+  # Restore defaults to staged mode; use apply mode only after reviewing the staged contents.
   backups:
     enabled: false
     max-total-size-mb: 256

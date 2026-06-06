@@ -34,6 +34,9 @@ object RemoteOperationsClient {
     @Volatile
     private var webSocket: WebSocket? = null
 
+    @Volatile
+    private var currentSessionToken: String? = null
+
     fun start() {
         stop()
 
@@ -56,6 +59,7 @@ object RemoteOperationsClient {
         stopping.set(true)
         webSocket?.abort()
         webSocket = null
+        currentSessionToken = null
         instanceId = null
         policyVersion = null
         status = "stopped"
@@ -88,7 +92,13 @@ object RemoteOperationsClient {
             }
 
             status = "registering"
-            val client = httpClient()
+            val client = runCatching {
+                httpClient()
+            }.getOrElse {
+                status = "register failed: ${it.message}"
+                scheduleReconnect("HTTP client setup failed")
+                return@runAsync
+            }
             val response = runCatching {
                 client.send(registerRequest(activationToken), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
             }.getOrElse {
@@ -116,6 +126,7 @@ object RemoteOperationsClient {
 
             instanceId = registeredInstanceId
             policyVersion = BackendJson.stringField(body, "policyVersion")
+            currentSessionToken = sessionToken
             connectWebSocket(client, normalizeWebSocketUrl(rpcUrl), sessionToken)
         }
     }
@@ -126,12 +137,27 @@ object RemoteOperationsClient {
         }
 
         status = "connecting websocket"
-        client.newWebSocketBuilder()
+        val uri = runCatching {
+            URI.create(rpcUrl).also(RemoteOperationSecurity::requireSecureUri)
+        }.getOrElse {
+            status = "websocket failed: ${it.message}"
+            scheduleReconnect("websocket URI rejected")
+            return
+        }
+
+        val builder = client.newWebSocketBuilder()
             .connectTimeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
             .header("Authorization", "Bearer $sessionToken")
             .header("User-Agent", userAgent())
             .header("X-Request-Id", UUID.randomUUID().toString())
-            .buildAsync(URI.create(rpcUrl), RpcListener())
+
+        RemoteOperationSecurity.signWebSocket(
+            builder,
+            uri,
+            sessionToken,
+            instanceId ?: OnlineLicenseGate.installationId()
+        )
+            .buildAsync(uri, RpcListener())
             .whenComplete { socket, error ->
                 if (error != null) {
                     status = "websocket failed: ${error.message}"
@@ -144,14 +170,29 @@ object RemoteOperationsClient {
     }
 
     private fun registerRequest(activationToken: String): HttpRequest {
-        return HttpRequest.newBuilder()
-            .uri(URI.create("${BackendApiPolicy.versionedApiUrl}/ops/instances/register"))
+        val uri = URI.create("${BackendApiPolicy.versionedApiUrl}/ops/instances/register")
+        RemoteOperationSecurity.requireSecureUri(uri)
+
+        val payload = registrationPayload()
+        val builder = HttpRequest.newBuilder()
+            .uri(uri)
             .timeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
             .header("Authorization", "Bearer $activationToken")
             .header("Content-Type", "application/json; charset=utf-8")
             .header("User-Agent", userAgent())
             .header("X-Request-Id", UUID.randomUUID().toString())
-            .POST(HttpRequest.BodyPublishers.ofString(registrationPayload(), StandardCharsets.UTF_8))
+
+        RemoteOperationSecurity.signHttpRequest(
+            builder,
+            "POST",
+            uri,
+            payload,
+            activationToken,
+            (OnlineLicenseGate.lastResult as? LicenseCheckResult.Valid)?.activationId ?: OnlineLicenseGate.installationId()
+        )
+
+        return builder
+            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
             .build()
     }
 
@@ -193,6 +234,14 @@ object RemoteOperationsClient {
 
         if (BackendJson.stringField(message, "type") == "rpc.ping") {
             send(socket, mapOf("type" to "rpc.pong", "requestId" to requestId, "serverTime" to Instant.now().toString()))
+            return
+        }
+
+        runCatching {
+            RemoteOperationSecurity.verifyRpcMessage(message, currentSessionToken)
+        }.onFailure {
+            val code = (it as? RemoteOperationException)?.code ?: "signature_invalid"
+            sendFailure(socket, requestId, jobId, code, it.message ?: code)
             return
         }
 
@@ -249,6 +298,7 @@ object RemoteOperationsClient {
             "ops.file.write" -> RemoteFileOperations.write(message, jobId)
             "ops.file.delete" -> RemoteFileOperations.delete(message, jobId)
             "ops.backup.create" -> RemoteFileOperations.createBackup(message, jobId)
+            "ops.backup.restore" -> RemoteFileOperations.restoreBackup(message, jobId)
             else -> throw RemoteOperationException("unsupported_method")
         }
     }
@@ -369,7 +419,7 @@ object RemoteOperationsClient {
     }
 
     private fun httpClient(): HttpClient =
-        HttpClient.newBuilder()
+        RemoteOperationSecurity.configureClient(HttpClient.newBuilder())
             .connectTimeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
             .build()
 
