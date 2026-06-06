@@ -13,6 +13,7 @@ group = "com.willfp"
 version = findProperty("version")!!
 val libreforgeVersion = findProperty("libreforge-version")
 val ecoVersion = findProperty("eco-version")
+val proguardVersion = findProperty("proguard-version") ?: "7.9.1"
 val vineflowerVersion = findProperty("vineflower-version") ?: "1.12.0"
 
 val embeddedLibreforge by configurations.creating {
@@ -22,6 +23,18 @@ val embeddedLibreforge by configurations.creating {
 }
 
 val decompiler by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = true
+}
+
+val obfuscator by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = true
+}
+
+val obfuscationLibraries by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
     isTransitive = true
@@ -41,6 +54,20 @@ dependencies {
 
     embeddedLibreforge("com.willfp:libreforge:${libreforgeVersion!!}:shadow@jar")
     decompiler("org.vineflower:vineflower:$vineflowerVersion")
+    obfuscator("com.guardsquare:proguard-base:$proguardVersion")
+
+    obfuscationLibraries(fileTree("lib") {
+        include("*.jar")
+    })
+    obfuscationLibraries("com.willfp:eco:$ecoVersion")
+    obfuscationLibraries("com.willfp:libreforge:${libreforgeVersion!!}:shadow@jar")
+    obfuscationLibraries("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    obfuscationLibraries("net.essentialsx:EssentialsX:2.19.7") {
+        exclude("*", "*")
+    }
+    obfuscationLibraries("org.jetbrains:annotations:26.0.2")
+    obfuscationLibraries("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
+    obfuscationLibraries("com.github.ben-manes.caffeine:caffeine:3.2.3")
 }
 
 tasks {
@@ -60,6 +87,9 @@ tasks {
     )
 
     val pluginDecompileClasses = layout.buildDirectory.dir("decompile/input/plugin-classes")
+    val proguardRules = layout.projectDirectory.file("proguard-rules.pro")
+    val proguardConfig = layout.buildDirectory.file("tmp/proguard/ecoenchants.pro")
+    val obfuscatedPluginJar = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}-obfuscated.jar")
 
     val preparePluginDecompileClasses by registering(Sync::class) {
         group = "decompilation"
@@ -114,6 +144,75 @@ tasks {
                 outputDir.get().asFile.absolutePath
             )
         }
+    }
+
+    val obfuscatePlugin by registering(JavaExec::class) {
+        group = "obfuscation"
+        description = "Obfuscates the final plugin jar into build/libs without rewriting source files."
+
+        dependsOn(shadowJar)
+
+        classpath = obfuscator
+        mainClass.set("proguard.ProGuard")
+        jvmArgs("-Xmx2g")
+
+        inputs.file(shadowJar.flatMap { it.archiveFile })
+        inputs.file(proguardRules)
+        inputs.files(obfuscationLibraries)
+        outputs.file(obfuscatedPluginJar)
+
+        doFirst {
+            fun File.proguardPath(): String = "'${absolutePath.replace("\\", "/")}'"
+
+            val inputJar = shadowJar.get().archiveFile.get().asFile
+            val outputJar = obfuscatedPluginJar.get().asFile
+            val configFile = proguardConfig.get().asFile
+            val nativeFilter = nativeServerClassGlobs.joinToString(",") { "!$it" }
+            val jmods = File(System.getProperty("java.home"), "jmods")
+            val javaLibraries = jmods
+                .listFiles { file -> file.extension == "jmod" }
+                ?.sortedBy { it.name }
+                .orEmpty()
+                .joinToString(System.lineSeparator()) {
+                    "-libraryjars ${it.proguardPath()}(!**.jar;!module-info.class)"
+                }
+            val dependencyLibraries = obfuscationLibraries.files
+                .filter { it.isFile }
+                .distinctBy { it.absolutePath }
+                .sortedBy { it.name }
+                .joinToString(System.lineSeparator()) {
+                    "-libraryjars ${it.proguardPath()}"
+                }
+
+            delete(outputJar)
+            outputJar.parentFile.mkdirs()
+            configFile.parentFile.mkdirs()
+            configFile.writeText(
+                """
+                -injars ${inputJar.proguardPath()}($nativeFilter)
+                -outjars ${outputJar.proguardPath()}
+                $javaLibraries
+                $dependencyLibraries
+                -include ${proguardRules.asFile.proguardPath()}
+                """.trimIndent()
+            )
+
+            setArgs(listOf("@${configFile.absolutePath}"))
+        }
+
+        doLast {
+            val nativeClasses = zipTree(obfuscatedPluginJar.get().asFile).matching {
+                include(nativeServerClassGlobs)
+            }.files
+
+            check(nativeClasses.isEmpty()) {
+                "Native server classes were copied into the obfuscated plugin jar."
+            }
+        }
+    }
+
+    build {
+        dependsOn(obfuscatePlugin)
     }
 }
 
