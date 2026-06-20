@@ -137,6 +137,8 @@ object EnchantGUI : Listener {
                         player,
                         getEmptyResultReason(hasItem, groupId, menu.hasCycleFilters(player), compatibleOnly)
                     )
+                } else {
+                    PlayerExperience.clearEmptyResults(player)
                 }
             }
 
@@ -849,19 +851,19 @@ private enum class GuiFilterAxis(
     }
 
     fun nextValue(player: Player, menu: Menu): GuiFilterValue? {
-        val options = options()
-        if (options.isEmpty()) {
+        val availableOptions = options()
+        if (availableOptions.isEmpty()) {
             return null
         }
 
-        val current = currentValue(player, menu) ?: return options.first()
-        val currentIndex = options.indexOfFirst { it.id == current.id }
+        val current = currentValue(player, menu) ?: return availableOptions.first()
+        val currentIndex = availableOptions.indexOfFirst { it.id == current.id }
         val nextIndex = currentIndex + 1
 
-        return if (currentIndex == -1 || nextIndex >= options.size) {
+        return if (currentIndex == -1 || nextIndex >= availableOptions.size) {
             null
         } else {
-            options[nextIndex]
+            availableOptions[nextIndex]
         }
     }
 }

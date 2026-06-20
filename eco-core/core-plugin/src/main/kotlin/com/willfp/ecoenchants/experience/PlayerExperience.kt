@@ -96,6 +96,10 @@ object PlayerExperience : Listener {
         )
     }
 
+    fun clearEmptyResults(player: Player) {
+        lastEmptyReasonByPlayer.remove(player.uniqueId)
+    }
+
     fun handleFilterChanged(player: Player, filter: String, value: String) {
         if (!plugin.configYml.getBool("player-experience.auto-hints.enabled")
             || !plugin.configYml.getBool("player-experience.auto-hints.on-filter-change")
