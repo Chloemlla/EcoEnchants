@@ -1,7 +1,6 @@
 package com.willfp.ecoenchants.enchant
 
 import com.github.benmanes.caffeine.cache.Caffeine
-import com.willfp.eco.core.config.base.LangYml
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.drops.DropQueue
 import com.willfp.eco.core.fast.fast
@@ -909,9 +908,13 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
                             "required" to this.required.joinToString(", ") { required ->
                                 required.wrap().getFormattedName(0)
                             }.ifEmpty { plugin.langYml.getFormattedString("no-required") },
-                            "tradeable" to this.isObtainableThroughTrading.parseYesOrNo(plugin.langYml),
-                            "discoverable" to this.isObtainableThroughDiscovery.parseYesOrNo(plugin.langYml),
-                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo(plugin.langYml)
+                            "tradeable" to this.isObtainableThroughTrading.parseYesOrNo(),
+                            "discoverable" to this.isObtainableThroughDiscovery.parseYesOrNo(),
+                            "discoverable_chests" to this.isObtainableThrough(DiscoveryType.CHESTS).parseYesOrNo(),
+                            "discoverable_fishing" to this.isObtainableThrough(DiscoveryType.FISHING).parseYesOrNo(),
+                            "discoverable_mob_drops" to this.isObtainableThrough(DiscoveryType.MOB_DROPS).parseYesOrNo(),
+                            "discoverable_raids" to this.isObtainableThrough(DiscoveryType.RAIDS).parseYesOrNo(),
+                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo()
                         )
                     )
                         .formatEco()
@@ -929,6 +932,5 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
     }
 }
 
-fun Boolean.parseYesOrNo(langYml: LangYml): String {
-    return if (this) langYml.getFormattedString("yes") else langYml.getFormattedString("no")
-}
+fun Boolean.parseYesOrNo(): String =
+    if (this) plugin.langYml.getFormattedString("yes") else plugin.langYml.getFormattedString("no")
