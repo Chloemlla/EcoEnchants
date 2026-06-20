@@ -1,26 +1,26 @@
 messages:
   prefix: "&a&lEcoEnchants &r&8» &r"
-  no-permission: "&cYou don't have permission to do this!"
-  not-player: "&cThis command must be run by a player"
-  invalid-command: "&cUnknown subcommand!"
-  reloaded: "&a重载完成 / Reloaded &7(%time%ms, %count% enchants). &c新增附魔后请重新登录，部分变更可能需要重启服务器。 / Relog after adding enchantments; some changes may require a restart."
-  invalid-player: "&cInvalid Player!"
-  requires-player: "&cRequires a Player!"
-  enabled-descriptions: "&fYou have successfully &aenabled &fenchantment descriptions!"
-  disabled-descriptions: "&fYou have successfully &cdisabled &fenchantment descriptions!"
-  descriptions-disabled: "&cEnchantment descriptions are disabled on this server."
-  not-found: "&cCannot find an enchantment matching name: &f%name%."
-  missing-enchant: "&cYou must specify an enchantment!"
-  gave-random-book: "&fGave &a%player%&f a random book (&r%enchantment%&f)!"
-  no-enchantments-found: "&cNo enchantments found!"
-  invalid-levels: "&cMinimum level can't be higher than maximum level!"
-  invalid-enchantment: "&cInvalid enchantment!"
-  added-enchant: "&fAdded &a%enchant%&f to &a%player%&f's held item!"
-  removed-enchant: "&fRemoved &a%enchant%&f from &a%player%&f's held item!"
+  no-permission: "&c你没有权限执行此操作 / You don't have permission to do this!"
+  not-player: "&c该命令必须由玩家执行 / This command must be run by a player."
+  invalid-command: "&c未知子命令 / Unknown subcommand. &7提示 / Tip: 使用 &f/ecoenchants gui &7打开附魔浏览器，使用 &f/enchantinfo <name> &7查看附魔详情。"
+  reloaded: "&a重载完成 / Reloaded &7(%time%ms, %count% enchants). &c新增附魔后请重新登录；部分变更可能需要重启服务器 / Relog after adding enchantments; some changes may require a restart."
+  invalid-player: "&c无效玩家 / Invalid player."
+  requires-player: "&c需要指定玩家 / Requires a player."
+  enabled-descriptions: "&f已&a开启&f附魔描述 / Enchantment descriptions enabled. &7再次使用 &f/ecoenchants toggledescriptions &7可关闭。"
+  disabled-descriptions: "&f已&c关闭&f附魔描述 / Enchantment descriptions disabled. &7再次使用 &f/ecoenchants toggledescriptions &7可开启。"
+  descriptions-disabled: "&c服务器已禁用附魔描述 / Enchantment descriptions are disabled on this server."
+  not-found: "&c找不到名为 &f%name% &c的附魔 / Cannot find an enchantment matching &f%name%&c. &7提示 / Tip: 输入 &f/enchantinfo &7后按 Tab 可补全名称。"
+  missing-enchant: "&c你需要指定一个附魔 / You must specify an enchantment. &7示例 / Example: &f/enchantinfo lifesteal 2"
+  gave-random-book: "&f已给予 &a%player% &f一本随机附魔书 (&r%enchantment%&f) / Gave a random book."
+  no-enchantments-found: "&c没有找到可用附魔 / No enchantments found."
+  invalid-levels: "&c最低等级不能高于最高等级 / Minimum level can't be higher than maximum level."
+  invalid-enchantment: "&c无效附魔 / Invalid enchantment. &7提示 / Tip: 输入 &f/enchant <id> &7后按 Tab 查看可用 ID。"
+  added-enchant: "&f已将 &a%enchant% &f添加到 &a%player%&f 手持物品 / Added to held item."
+  removed-enchant: "&f已从 &a%player%&f 手持物品移除 &a%enchant% &f/ Removed from held item."
   changed-enchant-page: "&f页面 / Page &a%page%&7/&a%max_page%&f."
-  opened-enchant-group: "&f正在浏览 / Browsing: &a%group%&f."
-  returned-gui-items: "&f已返还 / Returned &a%amount%&f GUI item(s)."
-  returned-gui-items-with-overflow: "&f已返还 / Returned &a%amount%&f GUI item(s). &e%dropped% 个物品因背包已满掉落在附近 / dropped nearby because your inventory was full."
+  opened-enchant-group: "&f正在浏览 / Browsing: &a%group%&f. &7提示 / Tip: 放入物品后只显示适用且尚未拥有的附魔。"
+  returned-gui-items: "&f已归还 / Returned &a%amount%&f 个 GUI 物品 / GUI item(s)."
+  returned-gui-items-with-overflow: "&f已归还 / Returned &a%amount%&f 个 GUI 物品 / GUI item(s). &e%dropped% &f个因背包已满掉落在附近 / dropped nearby because your inventory was full."
   opened-admin-gui: "&f已打开管理员工具 / Opened admin tools."
   admin-gui-disabled: "&c管理员工具已禁用 / Admin tools are disabled."
 
@@ -41,6 +41,10 @@ gui:
       lore:
         - "&7回到附魔分组列表"
         - "&8Return to the group list"
+        - ""
+        - "&e提示 / Tip"
+        - "&7换一个分类继续筛选附魔"
+        - "&8Choose another category to keep browsing"
 
   enchantinfo:
     item:
@@ -58,30 +62,58 @@ gui:
         - "&fDiscovery - Mob Drops: &a%discoverable_mob_drops%"
         - "&fDiscovery - Raids: &a%discoverable_raids%"
         - "&f附魔台 / Enchanting: &a%enchantable%"
+        - ""
+        - "&e便捷提示 / Quick Tip"
+        - "&7使用 &f/enchantinfo <名称> [等级] &7可随时查看"
+        - "&8Use /enchantinfo <name> [level] to reopen details"
 
   enchant:
     title: "&8附魔浏览 / Enchant Browser"
     info:
       name: "&a使用说明 / How to Use"
       lore:
-        - "&f将物品放入顶部中央槽位"
+        - "&f将物品放入顶部中间槽位"
         - "&7Put an item in the top middle slot"
         - "&f下方会显示可添加的附魔"
         - "&7Available enchantments appear below"
+        - ""
+        - "&e便捷提示 / Quick Tips"
+        - "&7直接浏览时会显示全部附魔"
+        - "&8Browse without an item to see every enchantment"
+        - "&7放入装备后会自动筛掉不适用或已有附魔"
+        - "&8Place gear to filter to usable new enchantments"
+        - "&7想精简物品描述？使用 &f/ecoenchants toggledescriptions"
+        - "&8Use /ecoenchants toggledescriptions to toggle lore descriptions"
     empty-results:
       name: "&c没有可显示的附魔 / No Enchantments"
       lore:
         - "&7当前没有加载可浏览的附魔"
         - "&8No enchantments are available to browse"
+        - ""
+        - "&e提示 / Tip"
+        - "&7管理员可检查附魔配置或执行重载"
+        - "&8Admins can check enchant configs or reload"
       group-lore:
         - "&7%group% 分组中没有可显示的附魔"
         - "&8No enchantments are available in %group%"
+        - ""
+        - "&e提示 / Tip"
+        - "&7返回分组后可查看其他类型"
+        - "&8Go back to browse another category"
       with-item-lore:
         - "&7这个物品没有可添加的附魔"
         - "&8This item has no available enchantments"
+        - ""
+        - "&e提示 / Tip"
+        - "&7试试换一件装备，或移除已有冲突附魔"
+        - "&8Try another item or remove conflicting enchants"
       with-item-and-group-lore:
         - "&7这个物品没有可添加的 %group% 附魔"
         - "&8This item has no available %group% enchantments"
+        - ""
+        - "&e提示 / Tip"
+        - "&7换一个分组，或取出物品查看全部附魔"
+        - "&8Change group or remove the item to browse all"
     page-next:
       name: "&f下一页 / Next Page &7(%page%/%max_page%)"
       lore:
@@ -97,6 +129,46 @@ gui:
       lore:
         - "&7打开 EcoEnchants 管理面板"
         - "&8Open the admin utility menu"
+        - ""
+        - "&e提示 / Tip"
+        - "&7可快速重载配置或生成随机附魔书"
+        - "&8Reload configs or generate a random book"
+    filters:
+      type:
+        name: "&b类型筛选 / Type: &f%current%"
+        lore:
+          - "&7点击切换附魔类型"
+          - "&8Click to cycle enchantment types"
+          - ""
+          - "&e便捷提示 / Quick Tip"
+          - "&7筛选会保留你放入的物品"
+          - "&8Filters keep your placed item"
+      rarity:
+        name: "&e稀有度筛选 / Rarity: &f%current%"
+        lore:
+          - "&7点击切换稀有度"
+          - "&8Click to cycle rarities"
+      target:
+        name: "&a目标筛选 / Target: &f%current%"
+        lore:
+          - "&7点击切换适用物品类型"
+          - "&8Click to cycle item targets"
+      compatible-only:
+        name: "&a仅显示可用 / Compatible: &f%state%"
+        lore:
+          - "&7点击切换是否只显示当前物品可添加的附魔"
+          - "&8Click to show compatible enchants only"
+          - "&7没有放入物品时会显示全部附魔"
+          - "&8Without an item, all enchants are shown"
+    conflict-view:
+      name: "&6冲突查看 / Conflicts"
+      lore:
+        - "&7点击查看当前物品会阻止哪些附魔"
+        - "&8Click to see enchants blocked by current item"
+        - ""
+        - "&e便捷提示 / Quick Tip"
+        - "&7先把物品放到顶部中间槽位"
+        - "&8Place an item in the top middle slot first"
 
   group:
     title: "&8附魔分组 / Enchantment Groups"
@@ -105,21 +177,29 @@ gui:
       lore:
         - "&f浏览普通附魔"
         - "&8Browse normal enchantments"
+        - "&7适合日常装备强化"
+        - "&8Good for everyday item upgrades"
     spell:
       name: "<gradient:#0575E6:#1E3FBA>法术附魔 / Spell Enchantments"
       lore:
         - "&f浏览法术附魔"
         - "&8Browse spell enchantments"
+        - "&7适合寻找主动或特殊触发效果"
+        - "&8Useful for active or special trigger effects"
     special:
       name: "<gradient:#FB57EC:#EF1DEC>特殊附魔 / Special Enchantments"
       lore:
         - "&f浏览特殊附魔"
         - "&8Browse special enchantments"
+        - "&7通常更强，也更需要搭配规划"
+        - "&8Usually stronger and better planned around"
     curse:
       name: "&c诅咒附魔 / Curse Enchantments"
       lore:
         - "&f浏览诅咒附魔"
         - "&8Browse curse enchantments"
+        - "&7查看负面效果，避免误用"
+        - "&8Review downsides before using them"
 
   admin:
     title: "&8管理员工具 / Admin Tools"
@@ -128,16 +208,94 @@ gui:
       lore:
         - "&7重新加载 EcoEnchants 配置"
         - "&8Reload EcoEnchants configuration"
+        - ""
+        - "&e提示 / Tip"
+        - "&7新增附魔后请让玩家重新登录"
+        - "&8Players should relog after new enchants are added"
     random-book:
       name: "&d给自己随机书 / Random Book"
       lore:
         - "&7给自己一本随机附魔书"
         - "&8Give yourself a random enchanted book"
+        - ""
+        - "&e提示 / Tip"
+        - "&7适合快速测试附魔展示与平衡"
+        - "&8Useful for quick display and balance testing"
 
+commands:
+  help:
+    header:
+      - "&a&lEcoEnchants &7- &f可用命令 / Available Commands"
+    gui:
+      - "&e/ecoenchants gui &7- 打开附魔浏览器 / Open the enchant browser"
+    enchantinfo:
+      - "&e/enchantinfo <name> [level] &7- 查看附魔详情 / View enchant details"
+    toggledescriptions:
+      - "&e/ecoenchants toggledescriptions &7- 切换物品描述显示 / Toggle lore descriptions"
+    guide:
+      - "&e/ecoenchants guide [book] &7- 查看玩家指南 / Show the player guide"
+    enchant:
+      - "&e/enchant <id> <level> &7- 管理员给手持物品附魔 / Admin enchant held item"
+    giverandombook:
+      - "&e/ecoenchants giverandombook <player> [type/rarity] [min] [max] &7- 生成随机书 / Give a random book"
+    reload:
+      - "&e/ecoenchants reload &7- 重载配置 / Reload configs"
+    services:
+      - "&e/ecoenchants services &7- 查看后端与运行状态 / Show service status"
+    experience:
+      - "&e/ecoenchants experience &7- 查看玩家体验提示统计 / Show player experience stats"
+  guide:
+    lines:
+      - "&a&lEcoEnchants 指南 / Guide"
+      - "&7当前加载附魔 / Loaded enchants: &f%enchant_count%"
+      - "&e/ecoenchants gui &7打开浏览器；放入物品会自动筛选可用附魔。"
+      - "&e/enchantinfo <name> [level] &7可随时查看等级、冲突、前置和获取来源。"
+      - "&e/ecoenchants toggledescriptions &7可切换物品 lore 中的附魔描述。"
+      - "&7想要书本版指南？使用 &f/ecoenchants guide book&7。"
+    book-title: "EcoEnchants Guide"
+    book-author: "EcoEnchants"
+    book-given:
+      - "&a已给予你一本 EcoEnchants 指南书 / Guide book added."
+    book-pages:
+      - "EcoEnchants Guide\n\nLoaded enchants: %enchant_count%\n\nUse /ecoenchants gui to browse enchants."
+      - "Place an item in the top middle slot to filter compatible enchants.\n\nUse the filter buttons to narrow the list."
+      - "Use /enchantinfo <name> [level] to inspect max level, rarity, targets, conflicts, requirements, and sources."
 
-all: "All"
-"yes": "&aYes"
-"no": "&cNo"
-no-conflicts: "No Conflicts"
-all-conflicts: "All Other Enchantments"
-no-required: "No Requirements"
+hints:
+  join:
+    - "&aEcoEnchants 提示 / Tip: &7使用 &f/ecoenchants gui &7浏览附魔，使用 &f/ecoenchants guide &7查看指南。"
+  browser-open:
+    - "&a便捷提示 / Tip: &7把装备放到顶部中间槽位，会自动只显示可添加的附魔。"
+  filter-changed:
+    - "&a筛选已更新 / Filter: &f%filter% &7= &f%value%&7。没有结果时可切换筛选或取出物品查看全部。"
+  empty-results:
+    none-loaded:
+      - "&e提示 / Tip: &7当前没有可浏览附魔。管理员可检查配置并执行 &f/ecoenchants reload&7。"
+    filter:
+      - "&e提示 / Tip: &7当前筛选没有结果。继续点击筛选按钮可切换到下一个选项或回到全部。"
+    item-compatible:
+      - "&e提示 / Tip: &7这个物品暂时没有可添加附魔。试试换装备、关闭仅兼容，或查看冲突。"
+    item-and-group:
+      - "&e提示 / Tip: &7当前分组对这个物品没有可添加附魔。返回分组或取出物品查看全部。"
+    item-and-filter:
+      - "&e提示 / Tip: &7当前筛选对这个物品没有结果。切换类型、稀有度或目标筛选试试。"
+  conflict-view:
+    no-item:
+      - "&e提示 / Tip: &7先把物品放到顶部中间槽位，再查看冲突。"
+    no-enchants:
+      - "&e提示 / Tip: &7这个物品还没有附魔，因此没有可分析的冲突。"
+    none:
+      - "&a冲突查看 / Conflicts: &7当前物品没有阻止其他 EcoEnchants 附魔。"
+    header:
+      - "&6冲突查看 / Conflicts: &7当前物品会阻止以下附魔："
+    line:
+      - "&7- &f%enchant%"
+
+all: "全部 / All"
+enabled: "&a开启 / Enabled"
+disabled: "&c关闭 / Disabled"
+"yes": "&a是 / Yes"
+"no": "&c否 / No"
+no-conflicts: "无冲突 / No Conflicts"
+all-conflicts: "与所有其他附魔冲突 / All Other Enchantments"
+no-required: "无前置 / No Requirements"

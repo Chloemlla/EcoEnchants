@@ -219,6 +219,23 @@ display:
 
   require-enchantable: true # If EcoEnchants should not display on non-enchantable items.
 
+# Player-facing guidance, convenience messages, and lightweight experience analytics.
+player-experience:
+  auto-hints:
+    enabled: true
+    cooldown-seconds: 90
+    once-per-player: true
+    on-first-join: true
+    on-browser-open: true
+    on-empty-results: true
+    on-filter-change: true
+
+  sounds:
+    invalid-click:
+      sound: block.note_block.bass
+      sound-volume: 0.6
+      sound-pitch: 0.7
+
 # Options for the /enchantinfo GUI
 enchantinfo:
   rows: 3 # How many rows for the GUI
@@ -331,6 +348,63 @@ enchant-gui:
     lore-key: gui.enchant.admin-tools.lore
     row: 1
     column: 1
+
+  # Optional convenience filters. These cycle through available values on click.
+  filters:
+    type:
+      enabled: true
+      item: compass
+      name-key: gui.enchant.filters.type.name
+      lore-key: gui.enchant.filters.type.lore
+      row: 1
+      column: 2
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    rarity:
+      enabled: true
+      item: emerald
+      name-key: gui.enchant.filters.rarity.name
+      lore-key: gui.enchant.filters.rarity.lore
+      row: 1
+      column: 3
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    target:
+      enabled: true
+      item: anvil
+      name-key: gui.enchant.filters.target.name
+      lore-key: gui.enchant.filters.target.lore
+      row: 1
+      column: 4
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    compatible-only:
+      enabled: true
+      default-enabled: true
+      item: lime_dye
+      name-key: gui.enchant.filters.compatible-only.name
+      lore-key: gui.enchant.filters.compatible-only.lore
+      row: 1
+      column: 8
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+
+  # Shows chat hints about which enchantments conflict with the item in the captive slot.
+  conflict-view:
+    enabled: true
+    item: knowledge_book
+    name-key: gui.enchant.conflict-view.name
+    lore-key: gui.enchant.conflict-view.lore
+    row: 1
+    column: 6
+    max-lines: 8
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 0.9
 
   # If enabled, /enchant opens a group selection menu first, grouping enchantments
   # by the group-by setting. If disabled, /enchant opens the flat enchantment list (current behavior).

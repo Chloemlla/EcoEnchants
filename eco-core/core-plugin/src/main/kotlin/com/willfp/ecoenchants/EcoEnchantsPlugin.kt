@@ -23,6 +23,7 @@ import com.willfp.ecoenchants.enchant.EnchantGUI
 import com.willfp.ecoenchants.enchant.LoreConversion
 import com.willfp.ecoenchants.enchant.registration.ModernEnchantmentRegistererProxy
 import com.willfp.ecoenchants.enchant.impl.EcoEnchantBase
+import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.integrations.EnchantRegistrations
 import com.willfp.ecoenchants.integrations.plugins.CMIIntegration
 import com.willfp.ecoenchants.integrations.plugins.EssentialsIntegration
@@ -147,6 +148,7 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
         ExtraItemSupport.reload()
         EnchantmentSourceCache.reload()
         EnchantGUI.reload()
+        PlayerExperience.reload()
         RuntimeTelemetry.reload()
         RemoteOperationsClient.reload()
     }
@@ -170,6 +172,7 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
             GrindstoneSupport,
             HeldInteractionRefreshSupport,
             EnchantGUI,
+            PlayerExperience,
             RuntimeTelemetry
         )
     }

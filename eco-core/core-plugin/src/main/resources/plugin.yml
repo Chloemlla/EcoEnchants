@@ -39,6 +39,8 @@ permissions:
       ecoenchants.command.reload: true
       ecoenchants.command.ecoenchants: true
       ecoenchants.command.toggledescriptions: true
+      ecoenchants.command.guide: true
+      ecoenchants.command.experience: true
       ecoenchants.command.giverandombook: true
       ecoenchants.command.enchantinfo: true
       ecoenchants.command.gui: true
@@ -65,6 +67,12 @@ permissions:
   ecoenchants.command.toggledescriptions:
     description: Allows the use of /ecoenchants toggledescriptions.
     default: true
+  ecoenchants.command.guide:
+    description: Allows the use of /ecoenchants guide.
+    default: true
+  ecoenchants.command.experience:
+    description: Allows checking player experience hint status and empty-result stats.
+    default: op
   ecoenchants.command.enchantinfo:
     description: Allows the use of /enchantinfo.
     default: true

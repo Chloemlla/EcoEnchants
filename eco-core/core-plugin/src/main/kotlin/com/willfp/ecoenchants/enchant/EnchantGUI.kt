@@ -28,6 +28,7 @@ import com.willfp.ecoenchants.display.EnchantSorter.sortForDisplay
 import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
+import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.plugin
 import com.willfp.ecoenchants.rarity.EnchantmentRarities
 import com.willfp.ecoenchants.target.EnchantmentTargets.applicableEnchantments
@@ -91,40 +92,32 @@ object EnchantGUI : Listener {
             onRender { player, menu ->
                 val atCaptive = menu.getCaptiveItem(player, captiveRow, captiveColumn)
                 val hasItem = !atCaptive.isEcoEmpty && atCaptive != null && atCaptive.type != Material.BOOK
+                val compatibleOnly = menu.getState<Boolean>(player, "compatibleOnly")
+                    ?: plugin.configYml.getBool("enchant-gui.filters.compatible-only.default-enabled")
 
-                val baseEnchants = if (!hasItem) {
-                    allEnchantsSorted
-                } else {
+                val baseEnchants = if (hasItem && compatibleOnly) {
                     val currentEnchants = atCaptive.fast().enchants.keys
                     applicableEnchantmentsSorted.get(HashedItem.of(atCaptive)) {
                         atCaptive.applicableEnchantments.sortForGui()
                     }.filterNot { it.enchantment in currentEnchants }
+                } else {
+                    allEnchantsSorted
                 }
 
                 // Apply group filter if a groupId is set in menu state
                 val groupId = menu.getState<String>(player, "groupId")
-                val filteredEnchants = if (groupId != null) {
-                    val groupBy = plugin.configYml.getString("enchant-gui.group-by")
-                    baseEnchants.filter { enchantment ->
-                        when (groupBy) {
-                            "type" -> enchantment.type.id == groupId
-                            "rarity" -> enchantment.enchantmentRarity.id == groupId
-                            "target" -> enchantment.targets.any { it.id == groupId }
-                            else -> true
-                        }
-                    }
-                } else {
-                    baseEnchants
-                }
-
-                menu.setState(player, "enchants", filteredEnchants)
+                val filteredEnchants = baseEnchants
+                    .filter { it.matchesGroupFilter(groupId) }
+                    .filter { it.matchesCycleFilters(player, menu) }
 
                 // Reset to page 1 when an item is placed or removed from the captive slot
                 val previousHasItem = menu.getState<Boolean>(player, "hasItem") ?: false
                 if (hasItem != previousHasItem) {
                     menu.setState(player, Page.PAGE_KEY, 1)
                 }
+                menu.setState(player, "enchants", filteredEnchants)
                 menu.setState(player, "hasItem", hasItem)
+                menu.setState(player, "compatibleOnly", compatibleOnly)
 
                 // Safety net: also reset if the current page now exceeds the new max.
                 // Compute directly from filteredEnchants to avoid a stale getMaxPage() value
@@ -137,6 +130,13 @@ object EnchantGUI : Listener {
                 }
                 if (menu.getPage(player) > maxPage) {
                     menu.setState(player, Page.PAGE_KEY, 1)
+                }
+
+                if (filteredEnchants.isEmpty()) {
+                    PlayerExperience.handleEmptyResults(
+                        player,
+                        getEmptyResultReason(hasItem, groupId, menu.hasCycleFilters(player), compatibleOnly)
+                    )
                 }
             }
 
@@ -164,6 +164,29 @@ object EnchantGUI : Listener {
                 plugin.configYml.getInt("enchant-gui.admin-tools.row"),
                 plugin.configYml.getInt("enchant-gui.admin-tools.column"),
                 AdminToolsButton()
+            )
+
+            for (axis in GuiFilterAxis.entries) {
+                addComponent(
+                    MenuLayer.TOP,
+                    plugin.configYml.getInt("${axis.configPath}.row"),
+                    plugin.configYml.getInt("${axis.configPath}.column"),
+                    FilterCycleButton(axis)
+                )
+            }
+
+            addComponent(
+                MenuLayer.TOP,
+                plugin.configYml.getInt("enchant-gui.filters.compatible-only.row"),
+                plugin.configYml.getInt("enchant-gui.filters.compatible-only.column"),
+                CompatibleOnlyButton()
+            )
+
+            addComponent(
+                MenuLayer.TOP,
+                plugin.configYml.getInt("enchant-gui.conflict-view.row"),
+                plugin.configYml.getInt("enchant-gui.conflict-view.column"),
+                ConflictViewButton()
             )
 
             if (plugin.configYml.getBool("enchant-gui.close-button.enabled")) {
@@ -348,6 +371,8 @@ object EnchantGUI : Listener {
     }
 
     fun openGUI(player: Player) {
+        PlayerExperience.handleBrowserOpen(player)
+
         if (plugin.configYml.getBool("enchant-gui.grouped") && groupMenu != null) {
             groupMenu!!.open(player)
         } else {
@@ -546,6 +571,149 @@ object EnchantGUI : Listener {
         override fun getColumns() = 1
     }
 
+    private class FilterCycleButton(
+        private val axis: GuiFilterAxis
+    ) : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("${axis.configPath}.enabled")) {
+                return emptySlot
+            }
+
+            return slot(
+                buildGuiItem(
+                    axis.configPath,
+                    mapOf("current" to axis.currentDisplay(player, menu))
+                )
+            ) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val next = axis.nextValue(clickedPlayer, menu)
+
+                    if (next == null) {
+                        menu.setState(clickedPlayer, axis.stateKey, "")
+                    } else {
+                        menu.setState(clickedPlayer, axis.stateKey, next.id)
+                    }
+
+                    menu.setState(clickedPlayer, Page.PAGE_KEY, 1)
+                    clickedPlayer.playConfiguredSound("${axis.configPath}.sound")
+                    PlayerExperience.handleFilterChanged(
+                        clickedPlayer,
+                        axis.label,
+                        next?.displayName ?: plugin.langYml.getFormattedString("all")
+                    )
+                    menu.open(clickedPlayer)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private class CompatibleOnlyButton : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+        private val configPath = "enchant-gui.filters.compatible-only"
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")) {
+                return emptySlot
+            }
+
+            val enabled = menu.getState<Boolean>(player, "compatibleOnly")
+                ?: plugin.configYml.getBool("$configPath.default-enabled")
+
+            return slot(
+                buildGuiItem(
+                    configPath,
+                    mapOf("state" to enabled.parseEnabledDisabled())
+                )
+            ) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val current = menu.getState<Boolean>(clickedPlayer, "compatibleOnly")
+                        ?: plugin.configYml.getBool("$configPath.default-enabled")
+
+                    menu.setState(clickedPlayer, "compatibleOnly", !current)
+                    menu.setState(clickedPlayer, Page.PAGE_KEY, 1)
+                    clickedPlayer.playConfiguredSound("$configPath.sound")
+                    PlayerExperience.handleFilterChanged(
+                        clickedPlayer,
+                        "compatible-only",
+                        (!current).parseEnabledDisabled()
+                    )
+                    menu.open(clickedPlayer)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private class ConflictViewButton : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+        private val configPath = "enchant-gui.conflict-view"
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")) {
+                return emptySlot
+            }
+
+            return slot(buildGuiItem(configPath)) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val captiveRow = plugin.configYml.getInt("enchant-gui.item-row")
+                    val captiveColumn = plugin.configYml.getInt("enchant-gui.item-column")
+                    val item = menu.getCaptiveItem(clickedPlayer, captiveRow, captiveColumn)
+
+                    if (item.isEcoEmpty || item == null || item.type == Material.AIR) {
+                        clickedPlayer.playConfiguredSound("player-experience.sounds.invalid-click.sound")
+                        PlayerExperience.sendLangLines(clickedPlayer, "hints.conflict-view.no-item")
+                        return@onLeftClick
+                    }
+
+                    val current = item.fast().getEnchants(true).keys
+                    if (current.isEmpty()) {
+                        clickedPlayer.playConfiguredSound("player-experience.sounds.invalid-click.sound")
+                        PlayerExperience.sendLangLines(clickedPlayer, "hints.conflict-view.no-enchants")
+                        return@onLeftClick
+                    }
+
+                    val conflicts = EcoEnchants.values()
+                        .filter { enchantment ->
+                            current.any { it.conflictsWithDeep(enchantment.enchantment) }
+                        }
+                        .map { enchantment ->
+                            val level = if (plugin.configYml.getBool("enchantinfo.item.show-max-level")) {
+                                enchantment.maximumLevel
+                            } else {
+                                1
+                            }
+                            enchantment.getFormattedName(level)
+                        }
+                        .distinct()
+                        .take(plugin.configYml.getInt("$configPath.max-lines").coerceAtLeast(1))
+
+                    clickedPlayer.playConfiguredSound("$configPath.sound")
+                    if (conflicts.isEmpty()) {
+                        PlayerExperience.sendLangLines(clickedPlayer, "hints.conflict-view.none")
+                    } else {
+                        PlayerExperience.sendLangLines(clickedPlayer, "hints.conflict-view.header")
+                        for (conflict in conflicts) {
+                            PlayerExperience.sendLangLines(clickedPlayer, "hints.conflict-view.line", "enchant" to conflict)
+                        }
+                    }
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
     private class AdminToolButton(
         private val tool: AdminTool
     ) : GUIComponent {
@@ -645,6 +813,63 @@ private class EnchantmentScrollPane : GUIComponent {
 
     val size = rows * columns
 }
+
+private enum class GuiFilterAxis(
+    val label: String,
+    val stateKey: String,
+    val configPath: String
+) {
+    TYPE("type", "filterType", "enchant-gui.filters.type"),
+    RARITY("rarity", "filterRarity", "enchant-gui.filters.rarity"),
+    TARGET("target", "filterTarget", "enchant-gui.filters.target");
+
+    fun options(): List<GuiFilterValue> {
+        return when (this) {
+            TYPE -> EnchantmentTypes.values()
+                .map { GuiFilterValue(it.id, it.id.toDisplayName()) }
+            RARITY -> EnchantmentRarities.values()
+                .map { GuiFilterValue(it.id, it.displayName) }
+            TARGET -> EnchantmentTargets.values()
+                .filterNot { it.id.equals("all", ignoreCase = true) }
+                .map { GuiFilterValue(it.id, it.displayName) }
+        }.sortedBy { it.displayName.stripLegacyFormattingForSort() }
+    }
+
+    fun currentValue(player: Player, menu: Menu): GuiFilterValue? {
+        val currentId = menu.getState<String>(player, stateKey).orEmpty()
+        if (currentId.isBlank()) {
+            return null
+        }
+
+        return options().firstOrNull { it.id.equals(currentId, ignoreCase = true) }
+    }
+
+    fun currentDisplay(player: Player, menu: Menu): String {
+        return currentValue(player, menu)?.displayName ?: plugin.langYml.getFormattedString("all")
+    }
+
+    fun nextValue(player: Player, menu: Menu): GuiFilterValue? {
+        val options = options()
+        if (options.isEmpty()) {
+            return null
+        }
+
+        val current = currentValue(player, menu) ?: return options.first()
+        val currentIndex = options.indexOfFirst { it.id == current.id }
+        val nextIndex = currentIndex + 1
+
+        return if (currentIndex == -1 || nextIndex >= options.size) {
+            null
+        } else {
+            options[nextIndex]
+        }
+    }
+}
+
+private data class GuiFilterValue(
+    val id: String,
+    val displayName: String
+)
 
 private val cachedEnchantmentSlots = Caffeine.newBuilder()
     .build<Pair<EcoEnchant, Int>, Slot>()
@@ -838,6 +1063,60 @@ private fun getConfiguredGroupDisplayName(groupId: String): String? {
     }
 }
 
+private fun EcoEnchant.matchesGroupFilter(groupId: String?): Boolean {
+    if (groupId.isNullOrBlank()) {
+        return true
+    }
+
+    return when (plugin.configYml.getString("enchant-gui.group-by")) {
+        "type" -> this.type.id == groupId
+        "rarity" -> this.enchantmentRarity.id == groupId
+        "target" -> this.targets.any { it.id == groupId }
+        else -> true
+    }
+}
+
+private fun EcoEnchant.matchesCycleFilters(player: Player, menu: Menu): Boolean {
+    val typeId = menu.getState<String>(player, GuiFilterAxis.TYPE.stateKey).orEmpty()
+    val rarityId = menu.getState<String>(player, GuiFilterAxis.RARITY.stateKey).orEmpty()
+    val targetId = menu.getState<String>(player, GuiFilterAxis.TARGET.stateKey).orEmpty()
+
+    if (typeId.isNotBlank() && this.type.id != typeId) {
+        return false
+    }
+
+    if (rarityId.isNotBlank() && this.enchantmentRarity.id != rarityId) {
+        return false
+    }
+
+    if (targetId.isNotBlank() && this.targets.none { it.id == targetId }) {
+        return false
+    }
+
+    return true
+}
+
+private fun Menu.hasCycleFilters(player: Player): Boolean {
+    return GuiFilterAxis.entries.any {
+        this.getState<String>(player, it.stateKey).orEmpty().isNotBlank()
+    }
+}
+
+private fun getEmptyResultReason(
+    hasItem: Boolean,
+    groupId: String?,
+    hasCycleFilters: Boolean,
+    compatibleOnly: Boolean
+): String {
+    return when {
+        hasItem && groupId != null -> "item-and-group"
+        hasItem && hasCycleFilters -> "item-and-filter"
+        hasItem && compatibleOnly -> "item-compatible"
+        groupId != null || hasCycleFilters -> "filter"
+        else -> "none-loaded"
+    }
+}
+
 private fun String.toDisplayName(): String {
     return this.split('_', '-')
         .filter { it.isNotBlank() }
@@ -846,6 +1125,19 @@ private fun String.toDisplayName(): String {
                 if (char.isLowerCase()) char.titlecase(Locale.ROOT) else char.toString()
             }
         }
+}
+
+private fun String.stripLegacyFormattingForSort(): String {
+    return this.replace(Regex("&[0-9a-fk-orA-FK-OR]"), "")
+        .replace(Regex("<[^>]+>"), "")
+}
+
+private fun Boolean.parseEnabledDisabled(): String {
+    return if (this) {
+        plugin.langYml.getFormattedString("enabled")
+    } else {
+        plugin.langYml.getFormattedString("disabled")
+    }
 }
 
 private fun Player.hasAdminToolsPermission(): Boolean {

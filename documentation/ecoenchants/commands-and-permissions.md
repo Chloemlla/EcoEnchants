@@ -12,6 +12,8 @@ Every command and its permission node is listed below. Permissions follow the `e
 | `/enchantinfo <enchant> [level]`                                 | Open the enchant info GUI for the specified enchantment at an optional level | `ecoenchants.command.enchantinfo`   |
 | `/ecoenchants gui`                                               | Open the enchantment GUI                                                | `ecoenchants.command.gui`                |
 | `/ecoenchants services`                                          | Show license, `/api/ecoenchants/v1`, remote operations, and local service status | `ecoenchants.command.services`     |
+| `/ecoenchants guide [book]`                                      | Show the player guide, or give the player an in-game guide book                  | `ecoenchants.command.guide`        |
+| `/ecoenchants experience`                                        | Show player guidance settings and empty-result hint statistics                   | `ecoenchants.command.experience`   |
 | `/ecoenchants giverandombook <player> [type/rarity] [min] [max]` | Give a player a random enchanted book                                   | `ecoenchants.command.giverandombook`     |
 | `/ecoenchants import <id>`                                       | Import an enchant from [lrcdb](https://lrcdb.auxilor.io/)               | `ecoenchants.command.import`             |
 | `/ecoenchants export <id>`                                       | Export an enchant to [lrcdb](https://lrcdb.auxilor.io/)                 | `ecoenchants.command.export`             | 
@@ -29,3 +31,4 @@ Every command and its permission node is listed below. Permissions follow the `e
 
 - **Make an enchantment to use these on:** the [How to Make an Enchantment](how-to-make-a-custom-enchant) guide.
 - **Configure the plugin:** every option in the [Plugin Config](plugin-config).
+- **Improve player guidance:** use [Player Experience Optimizations](player-experience-optimizations) to place helpful hints in the GUI and chat flow.
