@@ -53,6 +53,10 @@ gui:
         - "&f前置 / Requires: &a%required%"
         - "&f村民交易 / Trading: &a%tradeable%"
         - "&f战利品发现 / Discovery: &a%discoverable%"
+        - "&fDiscovery - Chests: &a%discoverable_chests%"
+        - "&fDiscovery - Fishing: &a%discoverable_fishing%"
+        - "&fDiscovery - Mob Drops: &a%discoverable_mob_drops%"
+        - "&fDiscovery - Raids: &a%discoverable_raids%"
         - "&f附魔台 / Enchanting: &a%enchantable%"
 
   enchant:
