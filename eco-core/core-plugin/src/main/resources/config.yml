@@ -445,6 +445,23 @@ group-gui:
     row: 1
     column: 9
 
+  # Optional entry to browse every enchantment without applying a group filter.
+  all-enchants:
+    enabled: true
+    item: book
+    name-key: gui.group.all.name
+    lore-key: gui.group.all.lore
+    row: 2
+    column: 5
+
+  close-button:
+    enabled: true
+    item: barrier
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
+    row: 3
+    column: 5
+
   # Each group must have a unique id matching an entry from the file corresponding
   # to the group-by setting:
   #   group-by: type   -> IDs from types.yml   (normal, spell, special, curse)

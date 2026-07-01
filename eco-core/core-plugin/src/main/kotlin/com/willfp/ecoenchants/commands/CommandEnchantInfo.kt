@@ -35,6 +35,7 @@ object CommandEnchantInfo : PluginCommand(
 
         if (args.isEmpty()) {
             sender.sendMessage(this.plugin.langYml.getMessage("missing-enchant"))
+            sender.sendMessage(this.plugin.langYml.getMessage("enchantinfo-usage"))
             return
         }
 
@@ -47,6 +48,7 @@ object CommandEnchantInfo : PluginCommand(
         if (enchantment == null) {
             val message = plugin.langYml.getMessage("not-found").replace("%name%", searchName)
             sender.sendMessage(message)
+            sender.sendMessage(plugin.langYml.getMessage("enchantinfo-browse-hint"))
             return
         }
 

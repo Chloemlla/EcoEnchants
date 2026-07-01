@@ -1,12 +1,14 @@
 package com.willfp.ecoenchants.commands
 
 import com.willfp.eco.core.command.impl.PluginCommand
+import com.willfp.eco.core.items.isEcoEmpty
 import com.willfp.eco.util.StringUtils
 import com.willfp.eco.util.savedDisplayName
 import com.willfp.ecoenchants.display.getFormattedName
 import com.willfp.ecoenchants.enchant.getEnchantmentByID
 import com.willfp.ecoenchants.enchant.wrap
 import com.willfp.ecoenchants.plugin
+import org.bukkit.Bukkit
 import org.bukkit.command.CommandSender
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
@@ -34,26 +36,63 @@ object CommandEnchant : PluginCommand(
     }
 
     override fun onExecute(sender: CommandSender, rawArgs: List<String>) {
-        var args = rawArgs
-        var player = sender as? Player
-
-        if (sender !is Player) {
-            player = notifyPlayerRequired(args.getOrNull(0), "invalid-player")
-            args = rawArgs.subList(1, rawArgs.size)
+        val usageMessage = if (sender is Player) {
+            "enchant-usage"
+        } else {
+            "enchant-usage-console"
         }
 
-        player!! // Unbelievable jank
+        val (player, args) = if (sender is Player) {
+            sender to rawArgs
+        } else {
+            val playerName = rawArgs.getOrNull(0)
+            if (playerName == null) {
+                sender.sendMessage(plugin.langYml.getMessage(usageMessage))
+                return
+            }
 
-        val enchant = notifyNull(
-            args.getOrNull(0)?.lowercase()?.let { getEnchantmentByID(it) },
-            "invalid-enchantment"
-        )
+            val target = Bukkit.getPlayer(playerName)
+            if (target == null) {
+                sender.sendMessage(plugin.langYml.getMessage("invalid-player"))
+                return
+            }
 
-        val level = args.getOrNull(1)?.toIntOrNull() ?: 1
+            target to rawArgs.drop(1)
+        }
+
+        val enchantName = args.getOrNull(0)
+        if (enchantName == null) {
+            sender.sendMessage(plugin.langYml.getMessage(usageMessage))
+            return
+        }
+
+        val enchant = getEnchantmentByID(enchantName.lowercase())
+        if (enchant == null) {
+            sender.sendMessage(plugin.langYml.getMessage("invalid-enchantment"))
+            sender.sendMessage(plugin.langYml.getMessage(usageMessage))
+            return
+        }
+
+        val levelArg = args.getOrNull(1)
+        val level = if (levelArg == null) {
+            1
+        } else {
+            levelArg.toIntOrNull() ?: run {
+                sender.sendMessage(plugin.langYml.getMessage("invalid-level"))
+                sender.sendMessage(plugin.langYml.getMessage(usageMessage))
+                return
+            }
+        }
 
         val item = player.inventory.itemInMainHand
-
         val meta = item.itemMeta
+        if (item.isEcoEmpty || meta == null) {
+            sender.sendMessage(
+                plugin.langYml.getMessage("requires-held-item", StringUtils.FormatOption.WITHOUT_PLACEHOLDERS)
+                    .replace("%player%", player.savedDisplayName)
+            )
+            return
+        }
 
         if (level > 0) {
             if (meta is EnchantmentStorageMeta) {
@@ -89,21 +128,31 @@ object CommandEnchant : PluginCommand(
 
         val completions = mutableListOf<String>()
 
-        var args = rawArgs
+        val args = if (sender !is Player) {
+            if (rawArgs.size <= 1) {
+                StringUtil.copyPartialMatches(
+                    rawArgs.getOrNull(0) ?: "",
+                    Bukkit.getOnlinePlayers().map { it.name },
+                    completions
+                )
+                completions.sort()
+                return completions
+            }
 
-        if (sender !is Player) {
-            args = rawArgs.subList(1, rawArgs.size)
+            rawArgs.drop(1)
+        } else {
+            rawArgs
         }
 
-        if (args.size == 1) {
+        if (args.isEmpty()) {
+            completions.addAll(enchantmentCompletions)
+        } else if (args.size == 1) {
             StringUtil.copyPartialMatches(
                 args[0],
                 enchantmentCompletions,
                 completions
             )
-        }
-
-        if (args.size == 2) {
+        } else if (args.size == 2) {
             val enchant = getEnchantmentByID(args[0].lowercase())
 
             val levels = if (enchant != null) {
@@ -119,6 +168,7 @@ object CommandEnchant : PluginCommand(
             )
         }
 
+        completions.sort()
         return completions
     }
 }

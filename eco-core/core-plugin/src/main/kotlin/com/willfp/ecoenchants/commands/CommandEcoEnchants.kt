@@ -12,6 +12,10 @@ object CommandEcoEnchants : PluginCommand(
     false
 ) {
     override fun onExecute(sender: CommandSender, args: List<String>) {
+        if (args.isNotEmpty()) {
+            sender.sendMessage(plugin.langYml.getMessage("invalid-command"))
+        }
+
         PlayerExperience.sendHelp(sender)
     }
 

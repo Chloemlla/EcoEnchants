@@ -2,7 +2,7 @@ messages:
   prefix: "&a&lEcoEnchants &r&8» &r"
   no-permission: "&c你没有权限执行此操作 / You don't have permission to do this!"
   not-player: "&c该命令必须由玩家执行 / This command must be run by a player."
-  invalid-command: "&c未知子命令 / Unknown subcommand. &7提示 / Tip: 使用 &f/ecoenchants gui &7打开附魔浏览器，使用 &f/enchantinfo <name> &7查看附魔详情。"
+  invalid-command: "&c未知子命令 / Unknown subcommand. &7使用 &f/ecoenchants help &7查看命令，或使用 &f/ecoenchants gui &7打开附魔浏览器。"
   reloaded: "&a重载完成 / Reloaded &7(%time%ms, %count% enchants). &c新增附魔后请重新登录；部分变更可能需要重启服务器 / Relog after adding enchantments; some changes may require a restart."
   invalid-player: "&c无效玩家 / Invalid player."
   requires-player: "&c需要指定玩家 / Requires a player."
@@ -11,12 +11,21 @@ messages:
   descriptions-disabled: "&c服务器已禁用附魔描述 / Enchantment descriptions are disabled on this server."
   not-found: "&c找不到名为 &f%name% &c的附魔 / Cannot find an enchantment matching &f%name%&c. &7提示 / Tip: 输入 &f/enchantinfo &7后按 Tab 可补全名称。"
   missing-enchant: "&c你需要指定一个附魔 / You must specify an enchantment. &7示例 / Example: &f/enchantinfo lifesteal 2"
-  gave-random-book: "&f已给予 &a%player% &f一本随机附魔书 (&r%enchantment%&f) / Gave a random book."
+  enchantinfo-usage: "&e用法 / Usage: &f/enchantinfo <enchant> [level]"
+  enchantinfo-browse-hint: "&7提示 / Tip: &f/ecoenchants gui &7可以浏览所有附魔。"
+  enchant-usage: "&e用法 / Usage: &f/enchant <enchant> [level] &7(等级 0 可移除 / level 0 removes)"
+  enchant-usage-console: "&e控制台用法 / Console usage: &f/enchant <player> <enchant> [level]"
+  giverandombook-usage: "&e用法 / Usage: &f/ecoenchants giverandombook <player> [type/rarity] [min] [max]"
+  requires-held-item: "&c%player% 必须手持一个物品 / %player% must hold an item."
+  gave-random-book: "&f已给予 &a%player%&f 一本随机附魔书 (&r%enchantment%&f) / Gave &a%player%&f a random book."
   no-enchantments-found: "&c没有找到可用附魔 / No enchantments found."
+  invalid-level: "&c等级必须是数字 / Level must be a number."
   invalid-levels: "&c最低等级不能高于最高等级 / Minimum level can't be higher than maximum level."
+  invalid-book-levels: "&c随机附魔书等级必须至少为 1 / Random book levels must be at least 1."
+  invalid-filter: "&c筛选条件无效，请使用类型或稀有度 ID / Invalid filter; use a type or rarity ID."
   invalid-enchantment: "&c无效附魔 / Invalid enchantment. &7提示 / Tip: 输入 &f/enchant <id> &7后按 Tab 查看可用 ID。"
-  added-enchant: "&f已将 &a%enchant% &f添加到 &a%player%&f 手持物品 / Added to held item."
-  removed-enchant: "&f已从 &a%player%&f 手持物品移除 &a%enchant% &f/ Removed from held item."
+  added-enchant: "&f已将 &a%enchant%&f 添加到 &a%player%&f 的手持物品 / Added &a%enchant%&f to &a%player%&f's held item."
+  removed-enchant: "&f已从 &a%player%&f 的手持物品移除 &a%enchant%&f / Removed &a%enchant%&f from &a%player%&f's held item."
   changed-enchant-page: "&f页面 / Page &a%page%&7/&a%max_page%&f."
   opened-enchant-group: "&f正在浏览 / Browsing: &a%group%&f. &7提示 / Tip: 放入物品后只显示适用且尚未拥有的附魔。"
   returned-gui-items: "&f已归还 / Returned &a%amount%&f 个 GUI 物品 / GUI item(s)."
@@ -172,6 +181,11 @@ gui:
 
   group:
     title: "&8附魔分组 / Enchantment Groups"
+    all:
+      name: "&a全部附魔 / All Enchantments"
+      lore:
+        - "&f不按分组筛选，浏览完整列表"
+        - "&8Browse the full unfiltered list"
     normal:
       name: "&7普通附魔 / Normal Enchantments"
       lore:
@@ -235,7 +249,7 @@ commands:
     guide:
       - "&e/ecoenchants guide [book] &7- 查看玩家指南 / Show the player guide"
     enchant:
-      - "&e/enchant <id> <level> &7- 管理员给手持物品附魔 / Admin enchant held item"
+      - "&e/enchant <id> [level] &7- 管理员给手持物品附魔；等级 0 移除 / Admin enchant held item; level 0 removes"
     giverandombook:
       - "&e/ecoenchants giverandombook <player> [type/rarity] [min] [max] &7- 生成随机书 / Give a random book"
     reload:

@@ -270,6 +270,28 @@ object EnchantGUI : Listener {
                     AdminToolsButton("group-gui.admin-tools")
                 )
 
+                if (plugin.configYml.getBool("group-gui.all-enchants.enabled")) {
+                    setSlot(
+                        plugin.configYml.getInt("group-gui.all-enchants.row"),
+                        plugin.configYml.getInt("group-gui.all-enchants.column"),
+                        slot(buildGuiItem("group-gui.all-enchants")) {
+                            onLeftClick { event, _ ->
+                                openAllEnchantsGUI(event.whoClicked as Player)
+                            }
+                        }
+                    )
+                }
+
+                if (plugin.configYml.getBool("group-gui.close-button.enabled")) {
+                    setSlot(
+                        plugin.configYml.getInt("group-gui.close-button.row"),
+                        plugin.configYml.getInt("group-gui.close-button.column"),
+                        slot(buildGuiItem("group-gui.close-button")) {
+                            onLeftClick { event, _ -> event.whoClicked.closeInventory() }
+                        }
+                    )
+                }
+
                 // Add a clickable slot for each configured group
                 for (config in plugin.configYml.getSubsections("group-gui.groups")) {
                     val groupId = config.getString("id")
@@ -488,6 +510,13 @@ object EnchantGUI : Listener {
         menu.setState(player, Page.PAGE_KEY, 1)
         menu.open(player)
         player.sendLangMessage("opened-enchant-group", "group" to getGroupDisplayName(groupId))
+    }
+
+    private fun openAllEnchantsGUI(player: Player) {
+        menu.clearState(player)
+        menu.setState(player, Page.PAGE_KEY, 1)
+        menu.open(player)
+        player.sendLangMessage("opened-enchant-group", "group" to plugin.langYml.getFormattedString("all"))
     }
 
     @EventHandler

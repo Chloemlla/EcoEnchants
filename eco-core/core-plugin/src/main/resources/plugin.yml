@@ -15,13 +15,13 @@ softdepend:
 
 commands:
   ecoenchants:
-    description: Base Command
+    description: Main EcoEnchants command and help
     permission: ecoenchants.command.ecoenchants
   enchantinfo:
-    description: Show info about an enchant
+    description: Show detailed information about an enchantment
     permission: ecoenchants.command.enchantinfo
   enchant:
-    description: Enchants an item
+    description: Add or remove enchantments on a held item
     permission: ecoenchants.command.enchant
 
 permissions:

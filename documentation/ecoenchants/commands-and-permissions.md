@@ -7,16 +7,16 @@ Every command and its permission node is listed below. Permissions follow the `e
 
 | Command                                                          | Description                                                             | Permission                               |
 |------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------|
+| `/ecoenchants` or `/ecoenchants help`                            | Show the commands available to you                                      | `ecoenchants.command.ecoenchants`        |
 | `/ecoenchants reload`                                            | Reload the plugin configs (adding new enchantments requires re-logging) | `ecoenchants.command.reload`             |
-| `/enchant <enchant> <level>`                                     | Enchant the held item                                                   | `ecoenchants.command.enchant`            |
+| `/enchant <enchant> [level]`                                     | Add or remove an enchantment from your held item; use level `0` to remove | `ecoenchants.command.enchant`          |
+| `/enchant <player> <enchant> [level]`                            | Console form of `/enchant`                                              | `ecoenchants.command.enchant`            |
 | `/enchantinfo <enchant> [level]`                                 | Open the enchant info GUI for the specified enchantment at an optional level | `ecoenchants.command.enchantinfo`   |
 | `/ecoenchants gui`                                               | Open the enchantment GUI                                                | `ecoenchants.command.gui`                |
 | `/ecoenchants services`                                          | Show license, `/api/ecoenchants/v1`, remote operations, and local service status | `ecoenchants.command.services`     |
 | `/ecoenchants guide [book]`                                      | Show the player guide, or give the player an in-game guide book                  | `ecoenchants.command.guide`        |
 | `/ecoenchants experience`                                        | Show player guidance settings and empty-result hint statistics                   | `ecoenchants.command.experience`   |
 | `/ecoenchants giverandombook <player> [type/rarity] [min] [max]` | Give a player a random enchanted book                                   | `ecoenchants.command.giverandombook`     |
-| `/ecoenchants import <id>`                                       | Import an enchant from [lrcdb](https://lrcdb.auxilor.io/)               | `ecoenchants.command.import`             |
-| `/ecoenchants export <id>`                                       | Export an enchant to [lrcdb](https://lrcdb.auxilor.io/)                 | `ecoenchants.command.export`             | 
 | `/ecoenchants toggledescriptions`                                | Let players toggle enchantment descriptions                             | `ecoenchants.command.toggledescriptions` |
 
 ### Additional permissions
