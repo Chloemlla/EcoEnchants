@@ -21,15 +21,17 @@ export default defineConfig({
     logo: '/brand-mark.svg',
     siteTitle: 'EcoEnchants',
     nav: [
+      { text: '主页说明', link: '/guide/homepage', activeMatch: '^/guide/homepage' },
       { text: '报告', link: '/report/', activeMatch: '^/report/(?!advanced|chloemlla-advanced)' },
       { text: 'Advanced', link: '/report/chloemlla-advanced', activeMatch: '^/report/(advanced|chloemlla-advanced)' },
-      { text: '部署', link: '/guide/vercel', activeMatch: '^/guide/' },
+      { text: '部署', link: '/guide/vercel', activeMatch: '^/guide/vercel' },
       { text: '原文档', link: '/ecoenchants/', activeMatch: '^/ecoenchants/' }
     ],
     sidebar: [
       {
         text: '文档站部署',
         items: [
+          { text: '主页说明', link: '/guide/homepage' },
           { text: 'Vercel 部署', link: '/guide/vercel' }
         ]
       },

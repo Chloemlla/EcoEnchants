@@ -19,7 +19,9 @@
   --ee-accent-sky: #0284c7;
   --ee-surface: rgba(255, 255, 255, 0.76);
   --ee-surface-strong: rgba(255, 255, 255, 0.94);
+  --ee-surface-solid: #ffffff;
   --ee-shadow: 0 24px 70px rgba(27, 45, 31, 0.14);
+  --ee-shadow-soft: 0 14px 38px rgba(27, 45, 31, 0.1);
 }
 
 .dark {
@@ -38,7 +40,9 @@
   --vp-home-hero-name-background: linear-gradient(120deg, #86efac 0%, #facc15 48%, #38bdf8 100%);
   --ee-surface: rgba(18, 31, 25, 0.78);
   --ee-surface-strong: rgba(20, 34, 28, 0.94);
+  --ee-surface-solid: #14221c;
   --ee-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+  --ee-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.24);
 }
 
 * {
@@ -53,16 +57,19 @@ body {
   min-width: 320px;
   background-color: var(--vp-c-bg);
   background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 360px),
     linear-gradient(rgba(21, 128, 61, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(2, 132, 199, 0.035) 1px, transparent 1px);
-  background-size: 42px 42px;
+  background-size: 100% 100%, 42px 42px, 42px 42px;
   text-rendering: optimizeLegibility;
 }
 
 .dark body {
   background-image:
+    linear-gradient(180deg, rgba(14, 23, 19, 0.72), transparent 360px),
     linear-gradient(rgba(134, 239, 172, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 42px 42px, 42px 42px;
 }
 
 ::selection {
@@ -76,10 +83,12 @@ body {
 
 .VPNavBar {
   background: rgba(251, 252, 248, 0.86);
+  box-shadow: 0 10px 30px rgba(27, 45, 31, 0.06);
 }
 
 .dark .VPNavBar {
   background: rgba(14, 23, 19, 0.84);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
 }
 
 @supports (backdrop-filter: blur(16px)) {
@@ -90,6 +99,7 @@ body {
 
 .VPNavBarTitle .title {
   font-weight: 800;
+  letter-spacing: 0;
 }
 
 .VPNavBarTitle .logo {
@@ -111,6 +121,22 @@ body {
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
   background: var(--ee-surface);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover {
+  border-color: rgba(2, 132, 199, 0.36);
+  background: var(--ee-surface-strong);
+  box-shadow: var(--ee-shadow-soft);
+}
+
+.VPNavScreen {
+  background: var(--vp-c-bg);
+}
+
+.VPNavScreenMenuLink,
+.VPNavScreenMenuGroup .button {
+  border-radius: 8px;
 }
 
 .VPHome {
@@ -120,7 +146,7 @@ body {
 .VPHomeHero {
   position: relative;
   overflow: hidden;
-  padding: 86px 24px 48px;
+  padding: 96px 24px 54px;
 }
 
 .VPHomeHero::before {
@@ -128,8 +154,8 @@ body {
   inset: 0;
   content: "";
   background:
-    linear-gradient(105deg, rgba(34, 197, 94, 0.13) 0%, transparent 34%),
-    linear-gradient(165deg, transparent 0%, rgba(217, 119, 6, 0.11) 54%, transparent 82%),
+    linear-gradient(105deg, rgba(34, 197, 94, 0.15) 0%, transparent 34%),
+    linear-gradient(165deg, transparent 0%, rgba(217, 119, 6, 0.12) 54%, transparent 82%),
     repeating-linear-gradient(135deg, transparent 0 18px, rgba(2, 132, 199, 0.045) 18px 19px);
   border-bottom: 1px solid var(--vp-c-divider);
 }
@@ -142,27 +168,27 @@ body {
 }
 
 .VPHomeHero .main {
-  max-width: 610px;
+  max-width: 650px;
 }
 
 .VPHomeHero .name {
-  max-width: 610px;
-  font-size: 64px;
+  max-width: 650px;
+  font-size: 68px;
   line-height: 1;
   font-weight: 850;
 }
 
 .VPHomeHero .text {
-  max-width: 610px;
+  max-width: 650px;
   margin-top: 14px;
-  font-size: 42px;
+  font-size: 44px;
   line-height: 1.12;
   font-weight: 800;
   color: var(--vp-c-text-1);
 }
 
 .VPHomeHero .tagline {
-  max-width: 590px;
+  max-width: 640px;
   padding-top: 22px;
   font-size: 19px;
   line-height: 1.75;
@@ -197,6 +223,8 @@ body {
   left: auto;
   width: 100%;
   max-width: 540px;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
   transform: none;
   border: 1px solid rgba(167, 243, 208, 0.38);
   border-radius: 8px;
@@ -232,11 +260,15 @@ body {
 }
 
 .VPFeatures {
-  padding: 24px 24px 0;
+  padding: 28px 24px 0;
 }
 
 .VPFeatures .container {
   max-width: 1184px;
+}
+
+.VPFeatures .items {
+  gap: 16px;
 }
 
 .VPFeature {
@@ -275,11 +307,11 @@ body {
 }
 
 .home-section {
-  margin-top: 44px;
+  margin-top: 48px;
 }
 
 .home-section-header {
-  max-width: 760px;
+  max-width: 780px;
   margin-bottom: 18px;
 }
 
@@ -288,6 +320,7 @@ body {
   color: var(--ee-accent-gold);
   font-size: 13px;
   font-weight: 800;
+  text-transform: uppercase;
 }
 
 .home-section h2 {
@@ -301,15 +334,73 @@ body {
   color: var(--vp-c-text-2);
 }
 
+.home-command {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 18px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(21, 128, 61, 0.1), rgba(2, 132, 199, 0.08)),
+    var(--ee-surface);
+  box-shadow: var(--ee-shadow-soft);
+}
+
+.home-command-copy {
+  padding: 12px 6px 12px 10px;
+}
+
+.home-command-copy h2 {
+  max-width: 620px;
+}
+
+.home-command-copy p:last-child {
+  max-width: 660px;
+  margin-bottom: 0;
+}
+
+.home-command-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--ee-surface-strong);
+}
+
+.home-command-panel div {
+  padding: 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--ee-surface-solid);
+}
+
+.home-command-panel span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ee-accent-sky);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.home-command-panel strong {
+  display: block;
+  color: var(--vp-c-text-1);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
 .home-route-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
 .route-card {
   display: block;
-  min-height: 184px;
+  min-height: 206px;
   padding: 22px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
@@ -350,14 +441,70 @@ body {
   line-height: 1.75;
 }
 
+.home-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-capability-grid a {
+  display: block;
+  min-height: 190px;
+  padding: 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, var(--ee-surface-strong), var(--ee-surface)),
+    var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+  box-shadow: 0 10px 32px rgba(27, 45, 31, 0.07);
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.home-capability-grid a:hover {
+  border-color: rgba(217, 119, 6, 0.4);
+  box-shadow: var(--ee-shadow);
+  transform: translateY(-2px);
+}
+
+.home-capability-grid span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--ee-accent-gold);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.home-capability-grid strong {
+  display: block;
+  margin: 14px 0 8px;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.home-capability-grid small {
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.72;
+}
+
 .home-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(21, 128, 61, 0.08), rgba(2, 132, 199, 0.07));
+  background:
+    linear-gradient(135deg, rgba(21, 128, 61, 0.08), rgba(2, 132, 199, 0.07)),
+    var(--ee-surface);
+  box-shadow: var(--ee-shadow-soft);
 }
 
 .metric-item {
@@ -387,7 +534,10 @@ body {
   padding: 20px 22px;
   border-left: 4px solid var(--ee-accent-sky);
   border-radius: 8px;
-  background: rgba(2, 132, 199, 0.08);
+  background:
+    linear-gradient(90deg, rgba(2, 132, 199, 0.1), transparent),
+    var(--ee-surface-strong);
+  box-shadow: var(--ee-shadow-soft);
 }
 
 .home-note p {
@@ -399,7 +549,7 @@ body {
 }
 
 .VPDoc .content {
-  padding-top: 34px;
+  padding-top: 40px;
 }
 
 .vp-doc {
@@ -411,6 +561,7 @@ body {
   font-size: 40px;
   line-height: 1.18;
   font-weight: 850;
+  max-width: 820px;
 }
 
 .vp-doc h2 {
@@ -442,6 +593,16 @@ body {
   color: var(--vp-c-text-2);
 }
 
+.vp-doc ul,
+.vp-doc ol {
+  padding-left: 1.35rem;
+}
+
+.vp-doc li::marker {
+  color: var(--vp-c-brand-1);
+  font-weight: 800;
+}
+
 .vp-doc strong {
   color: var(--vp-c-text-1);
 }
@@ -458,6 +619,13 @@ body {
   background: var(--vp-c-brand-soft);
 }
 
+.vp-doc hr {
+  height: 1px;
+  margin: 36px 0;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--vp-c-divider), transparent);
+}
+
 .vp-doc table {
   display: table;
   width: 100%;
@@ -467,6 +635,7 @@ body {
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
   font-size: 15px;
+  box-shadow: var(--ee-shadow-soft);
 }
 
 .vp-doc tr:nth-child(2n) {
@@ -499,6 +668,7 @@ body {
   padding: 2px 6px;
   background: rgba(21, 128, 61, 0.08);
   color: #166534;
+  font-weight: 650;
 }
 
 .dark .vp-doc :not(pre) > code {
@@ -518,6 +688,7 @@ body {
 
 .vp-doc .custom-block {
   border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
 }
 
 .VPSidebar {
@@ -533,6 +704,10 @@ body {
   line-height: 1.45;
 }
 
+.VPSidebarItem .link {
+  border-radius: 8px;
+}
+
 .VPSidebarItem.level-0 > .item > .link > .text,
 .VPSidebarItem.level-0 > .item > .text {
   font-weight: 850;
@@ -541,6 +716,10 @@ body {
 .VPSidebarItem.is-active > .item .text {
   color: var(--vp-c-brand-1);
   font-weight: 800;
+}
+
+.VPDocAsideOutline .outline-link {
+  border-radius: 6px;
 }
 
 .VPDocAsideOutline .content {
@@ -580,8 +759,16 @@ body {
     max-width: 100%;
   }
 
-  .home-route-grid {
+  .home-command {
     grid-template-columns: 1fr;
+  }
+
+  .home-route-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-capability-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .home-metrics {
@@ -611,6 +798,14 @@ body {
     width: 100%;
   }
 
+  .home-command {
+    padding: 14px;
+  }
+
+  .home-command-copy {
+    padding: 6px 2px;
+  }
+
   .VPFeatures,
   .VPHomeContent {
     padding-right: 20px;
@@ -619,6 +814,11 @@ body {
 
   .home-section h2 {
     font-size: 24px;
+  }
+
+  .home-route-grid,
+  .home-capability-grid {
+    grid-template-columns: 1fr;
   }
 
   .home-metrics {
