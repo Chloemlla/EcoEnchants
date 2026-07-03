@@ -20,7 +20,7 @@ EcoEnchants 的核心定位是“像原版附魔一样存在”的自定义附�
 4. 给玩家和管理组配置权限看 [命令、权限与 GUI](./commands-gui)。
 5. 修改 `config.yml` 前看 [配置运营手册](./configuration)。
 6. 使用 CMI、EssentialsX、Folia 或新版本 Paper 时看 [兼容性与集成](./integrations)。
-7. 使用 Chloemlla `advanced` 分支时必须看 [新增功能章节](./chloemlla-advanced)。
+7. 使用 Chloemlla `advanced` 分支时先看 [新增功能总览](./chloemlla-advanced)，再按需要阅读授权、远程运维、遥测、GUI 和排障细分页。
 
 ## 运维原则
 

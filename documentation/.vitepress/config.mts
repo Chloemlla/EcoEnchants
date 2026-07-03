@@ -20,8 +20,18 @@ export default defineConfig({
           { text: '附魔库与自定义附魔', link: '/report/enchantments' },
           { text: '命令、权限与 GUI', link: '/report/commands-gui' },
           { text: '配置运营手册', link: '/report/configuration' },
-          { text: '兼容性与集成', link: '/report/integrations' },
-          { text: 'Chloemlla advanced 新功能', link: '/report/chloemlla-advanced' }
+          { text: '兼容性与集成', link: '/report/integrations' }
+        ]
+      },
+      {
+        text: 'Chloemlla advanced 新功能',
+        items: [
+          { text: '功能总览', link: '/report/chloemlla-advanced' },
+          { text: '授权与服务状态', link: '/report/advanced-license-services' },
+          { text: '远程运维与备份', link: '/report/advanced-remote-operations' },
+          { text: '遥测与环境探针', link: '/report/advanced-telemetry-probe' },
+          { text: 'GUI 与玩家体验', link: '/report/advanced-gui-experience' },
+          { text: '排障与上线清单', link: '/report/advanced-troubleshooting' }
         ]
       },
       {
