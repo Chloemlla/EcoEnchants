@@ -8,9 +8,16 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '报告', link: '/report/' },
+      { text: '部署', link: '/guide/vercel' },
       { text: '原文档', link: '/ecoenchants/' }
     ],
     sidebar: [
+      {
+        text: '文档站部署',
+        items: [
+          { text: 'Vercel 部署', link: '/guide/vercel' }
+        ]
+      },
       {
         text: '服主调研报告',
         items: [
