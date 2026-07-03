@@ -35,6 +35,15 @@ object BackendApiPolicy {
     val sendBuildFingerprint: Boolean
         get() = plugin.configYml.getBool("license.send-build-fingerprint")
 
+    val backendVerboseLogging: Boolean
+        get() = plugin.configYml.getBool("backend-api.logging.verbose")
+
+    val backendPayloadLogging: Boolean
+        get() = plugin.configYml.getBool("backend-api.logging.include-payloads")
+
+    val backendMaxPayloadChars: Int
+        get() = plugin.configYml.getInt("backend-api.logging.max-payload-chars").coerceIn(128, 16384)
+
     val licenseKey: String
         get() = plugin.configYml.getString("license.key").trim()
 
@@ -129,6 +138,9 @@ object BackendApiPolicy {
             "Core runtime gating allowed: $CORE_RUNTIME_GATING_ALLOWED",
             "Required startup network allowed: $REQUIRED_STARTUP_NETWORK_ALLOWED",
             "Player privacy collection allowed: $PLAYER_PRIVACY_COLLECTION_ALLOWED",
+            "Backend verbose logging: $backendVerboseLogging",
+            "Backend payload logging: $backendPayloadLogging",
+            "Backend max payload chars: $backendMaxPayloadChars",
             "Last check: ${result.summary}",
             "Remote operations enabled: $remoteOperationsEnabled",
             "Remote secure transport required: $remoteOpsRequireSecureTransport",

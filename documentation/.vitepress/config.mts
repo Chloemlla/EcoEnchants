@@ -1,15 +1,30 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'EcoEnchants 服主报告',
+  title: 'EcoEnchants',
+  titleTemplate: ':title | 服主报告',
   description: '面向 Minecraft 服务器主的 EcoEnchants 功能调研与使用指南',
   lang: 'zh-CN',
   cleanUrls: true,
+  appearance: true,
+  markdown: {
+    lineNumbers: true
+  },
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
+    ['meta', { name: 'theme-color', content: '#16a34a' }],
+    ['meta', { property: 'og:title', content: 'EcoEnchants 服主报告' }],
+    ['meta', { property: 'og:description', content: '面向 Minecraft 服务器主的 EcoEnchants 功能调研、advanced 分支能力说明与运维指南。' }],
+    ['meta', { property: 'og:type', content: 'website' }]
+  ],
   themeConfig: {
+    logo: '/brand-mark.svg',
+    siteTitle: 'EcoEnchants',
     nav: [
-      { text: '报告', link: '/report/' },
-      { text: '部署', link: '/guide/vercel' },
-      { text: '原文档', link: '/ecoenchants/' }
+      { text: '报告', link: '/report/', activeMatch: '^/report/(?!advanced|chloemlla-advanced)' },
+      { text: 'Advanced', link: '/report/chloemlla-advanced', activeMatch: '^/report/(advanced|chloemlla-advanced)' },
+      { text: '部署', link: '/guide/vercel', activeMatch: '^/guide/' },
+      { text: '原文档', link: '/ecoenchants/', activeMatch: '^/ecoenchants/' }
     ],
     sidebar: [
       {
@@ -56,19 +71,52 @@ export default defineConfig({
       }
     ],
     search: {
-      provider: 'local'
+      provider: 'local',
+      options: {
+        translations: {
+          button: {
+            buttonText: '搜索文档',
+            buttonAriaLabel: '搜索文档'
+          },
+          modal: {
+            noResultsText: '没有找到结果',
+            resetButtonTitle: '清除搜索',
+            footer: {
+              selectText: '选择',
+              navigateText: '切换',
+              closeText: '关闭'
+            }
+          }
+        }
+      }
     },
     outline: {
       level: [2, 3],
       label: '本页目录'
     },
+    editLink: {
+      pattern: 'https://github.com/Chloemlla/EcoEnchants/edit/advanced/documentation/:path',
+      text: '在 GitHub 编辑此页'
+    },
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/Chloemlla/EcoEnchants' }
+    ],
     docFooter: {
       prev: '上一页',
       next: '下一页'
     },
     lastUpdated: {
       text: '最后更新'
-    }
+    },
+    footer: {
+      message: 'EcoEnchants advanced 分支文档站',
+      copyright: 'Released with repository documentation updates.'
+    },
+    darkModeSwitchLabel: '外观',
+    lightModeSwitchTitle: '切换到浅色模式',
+    darkModeSwitchTitle: '切换到深色模式',
+    sidebarMenuLabel: '菜单',
+    returnToTopLabel: '返回顶部'
   },
   lastUpdated: true
 })

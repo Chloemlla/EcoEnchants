@@ -17,6 +17,45 @@
 | 权限 | 普通玩家只给 GUI、guide、enchantinfo、toggledescriptions。 |
 | 回滚 | 修改 advanced 后端配置前保留 `config.yml` 备份。 |
 
+## 开发者追踪日志
+
+排查后端通信问题时，先临时开启：
+
+```yaml
+backend-api:
+  logging:
+    verbose: true
+    include-payloads: false
+    max-payload-chars: 2048
+```
+
+如果只靠状态码和 requestId 还不够，再短时间开启：
+
+```yaml
+backend-api:
+  logging:
+    include-payloads: true
+```
+
+日志格式大致如下：
+
+```text
+[EcoEnchants API] -> license.verify requestId=... method=POST uri=https://... bodyBytes=...
+[EcoEnchants API] <- license.verify requestId=... status=200 durationMs=... bodyBytes=...
+[EcoEnchants API] ** ops.reconnect attempt=1 delaySeconds=5 reason=register failed
+```
+
+把 `requestId`、`jobId`、`method`、状态码和时间戳交给后端开发者，可以快速定位同一条请求在服务端、代理和后端之间的流转。
+
+排障结束后关闭：
+
+```yaml
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
+```
+
 ## 插件启动失败
 
 | 现象 | 可能原因 | 处理 |

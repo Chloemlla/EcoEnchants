@@ -27,8 +27,18 @@ license:
   # Privacy boundary:
   # - The startup check sends license key, installation ID, plugin/server version, Java version,
   #   online-mode, channel, and optionally server name / build fingerprint.
-  # - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
-  #   coordinates, permissions, or world file fingerprints.
+# - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
+#   coordinates, permissions, or world file fingerprints.
+
+# Developer-facing backend API communication tracing.
+# Keep disabled on production unless you are actively diagnosing backend issues.
+# Payload logging is separately gated and redacts known tokens, license keys, signatures,
+# secrets, and passwords before writing to the console.
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
+    max-payload-chars: 2048
 
 # Secure remote operations client for /api/ecoenchants/v1.
 # The plugin connects outbound to the licensed backend after startup verification succeeds.

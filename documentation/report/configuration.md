@@ -7,6 +7,7 @@
 | 配置段 | 默认状态 | 建议 |
 | --- | --- | --- |
 | `license` | 启用，必须通过后端验证 | 生产服必须填写 key，并确认后端地址稳定。 |
+| `backend-api.logging` | 关闭 | 仅排查授权、RPC、遥测通信时临时开启。 |
 | `remote-operations.enabled` | true | 如果后端未部署或不使用远程运维，建议改为 false。 |
 | `remote-operations.file-ops.enabled` | false | 保持 false，只有需要后端维护文件时启用。 |
 | `remote-operations.backups.enabled` | false | 保持 false，除非要用后端触发备份/回滚。 |
@@ -16,6 +17,11 @@
 最低风险的后端配置：
 
 ```yaml
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
+
 remote-operations:
   enabled: false
 

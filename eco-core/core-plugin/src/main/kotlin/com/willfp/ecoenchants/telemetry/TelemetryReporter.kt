@@ -1,6 +1,7 @@
 package com.willfp.ecoenchants.telemetry
 
 import com.willfp.ecoenchants.backend.BackendApiPolicy
+import com.willfp.ecoenchants.backend.BackendApiTrace
 import com.willfp.ecoenchants.backend.BackendJson
 import com.willfp.ecoenchants.backend.LicenseCheckResult
 import com.willfp.ecoenchants.backend.OnlineLicenseGate
@@ -75,6 +76,7 @@ object TelemetryReporter {
         ) {
             droppedEvents.incrementAndGet()
             if (warnedMissingToken.compareAndSet(false, true)) {
+                BackendApiTrace.event("telemetry.queue", "remote reporting requires activation token, events remain local only")
                 plugin.logger.warning(
                     "EcoEnchants telemetry remote reporting is enabled, but the license response " +
                             "did not include an activation token. Events will remain local only."
@@ -88,6 +90,10 @@ object TelemetryReporter {
             while (queue.size > RuntimeTelemetryPolicy.remoteReportingMaxQueuedEvents) {
                 queue.removeFirstOrNull()
                 droppedEvents.incrementAndGet()
+                BackendApiTrace.event(
+                    "telemetry.queue",
+                    "dropped oldest event because queue exceeded ${RuntimeTelemetryPolicy.remoteReportingMaxQueuedEvents}"
+                )
             }
             ensureTaskLocked()
         }
@@ -119,6 +125,10 @@ object TelemetryReporter {
             flushOnce()
         }
         lastResult = "scheduled"
+        BackendApiTrace.event(
+            "telemetry.queue",
+            "scheduled remote reporter intervalTicks=${RuntimeTelemetryPolicy.remoteReportingIntervalTicks}"
+        )
     }
 
     private fun flushOnce() {
@@ -137,6 +147,7 @@ object TelemetryReporter {
             }
         }
 
+        BackendApiTrace.event("telemetry.flush", "sending batchSize=${batch.size} remainingQueue=${queuedEvents()}")
         val result = sendBatch(batch)
         synchronized(lock) {
             if (result.success) {
@@ -153,6 +164,10 @@ object TelemetryReporter {
                 while (queue.size > RuntimeTelemetryPolicy.remoteReportingMaxQueuedEvents) {
                     queue.removeLastOrNull()
                     droppedEvents.incrementAndGet()
+                    BackendApiTrace.event(
+                        "telemetry.queue",
+                        "dropped newest event while restoring failed batch; queue exceeded ${RuntimeTelemetryPolicy.remoteReportingMaxQueuedEvents}"
+                    )
                 }
             }
 
@@ -170,15 +185,17 @@ object TelemetryReporter {
         val batchId = UUID.randomUUID().toString()
         val payload = batchPayload(batchId, events)
         val body = BackendJson.toJson(payload)
+        val uri = URI.create(RuntimeTelemetryPolicy.remoteReportingUrl)
+        val requestId = UUID.randomUUID().toString()
 
         val request = runCatching {
             val builder = HttpRequest.newBuilder()
-                .uri(URI.create(RuntimeTelemetryPolicy.remoteReportingUrl))
+                .uri(uri)
                 .timeout(Duration.ofMillis(RuntimeTelemetryPolicy.remoteReportingTimeoutMillis.toLong()))
                 .header("Content-Type", "application/json; charset=utf-8")
                 .header("Accept", "application/json")
                 .header("User-Agent", userAgent())
-                .header("X-Request-Id", UUID.randomUUID().toString())
+                .header("X-Request-Id", requestId)
                 .header("Idempotency-Key", batchId)
                 .header("X-Eco-Product-Id", BackendApiPolicy.PRODUCT_ID)
                 .header("X-Eco-Installation-Id", OnlineLicenseGate.installationId())
@@ -192,19 +209,24 @@ object TelemetryReporter {
 
             builder.build()
         }.getOrElse {
+            BackendApiTrace.failure("telemetry.events", requestId, message = "could not build request: ${it.message}")
             return SendResult(false, -1, "could not build telemetry request: ${it.message}")
         }
 
+        BackendApiTrace.request("telemetry.events", requestId, "POST", uri, body)
+        val startedAt = BackendApiTrace.mark()
         val response = runCatching {
             HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(RuntimeTelemetryPolicy.remoteReportingTimeoutMillis.toLong()))
                 .build()
                 .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
         }.getOrElse {
+            BackendApiTrace.failure("telemetry.events", requestId, startedAt, "telemetry endpoint unreachable: ${it.message}")
             return SendResult(false, -1, "telemetry endpoint unreachable: ${it.message}")
         }
 
         val status = response.statusCode()
+        BackendApiTrace.response("telemetry.events", requestId, status, startedAt, response.body())
         if (status in 200..299) {
             return SendResult(true, status, "ok")
         }

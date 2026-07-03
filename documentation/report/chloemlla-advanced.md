@@ -4,12 +4,13 @@
 
 ## 新增能力总览
 
-`advanced` 分支新增能力主要分为 6 类：
+`advanced` 分支新增能力主要分为 7 类：
 
 | 类别 | 功能 | 服主价值 |
 | --- | --- | --- |
 | 商业授权 | 启动时在线 license 验证 | 统一控制商业构建授权，阻止未授权运行。 |
 | 后端接入 | `/api/ecoenchants/v1` URL 规范化、状态查询、activation token | 为授权、遥测和远程运维提供统一后端入口。 |
+| 开发者溯源 | 可配置后端 API 通信追踪、requestId、耗时、状态码、脱敏 payload | 帮助开发者从插件日志反查后端请求链路。 |
 | 远程运维 | WebSocket RPC、HMAC、mTLS、审计、文件操作、备份、回滚 | 支持集中维护多实例，但需要严格审批和审计。 |
 | 运行遥测 | 本地 JSONL 审计、远程批量上报、身份/移动/状态/文本风险事件 | 帮助服主分析异常行为和运行风险。 |
 | 玩家体验 | 双语提示、指南命令、指南书、空结果提示、经验统计 | 降低玩家学习成本，减少“GUI 坏了”的误解。 |
@@ -34,6 +35,8 @@ advanced 分支默认更偏“商业版 + 后端可接入”的形态：
 | --- | --- | --- |
 | `license.key` | 空 | 不填 key 时授权校验失败，核心运行时不会启用。 |
 | `license.api-url` | `https://tts.chloemlla.com/api/ecoenchants/v1` | 授权、远程运维和遥测默认后端。 |
+| `backend-api.logging.verbose` | false | 默认不打印后端 API 通信追踪，排障时临时开启。 |
+| `backend-api.logging.include-payloads` | false | 默认不打印 payload，深度排障时才短期开启。 |
 | `remote-operations.enabled` | true | 授权成功且后端返回 token 后尝试注册远程运维实例。 |
 | `remote-operations.file-ops.enabled` | false | 默认不允许远程读写删文件。 |
 | `remote-operations.backups.enabled` | false | 默认不允许远程备份/恢复。 |
@@ -51,6 +54,11 @@ advanced 分支默认更偏“商业版 + 后端可接入”的形态：
 ```yaml
 license:
   key: "你的授权 key"
+
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
 
 remote-operations:
   enabled: false

@@ -55,6 +55,9 @@ license:
 | `Timeout` | 授权请求超时 | 代码会限制在 500-5000ms。 |
 | `Send server name` | 是否发送服务器名 | 生产服通常保持 false。 |
 | `Send build fingerprint` | 是否发送构建指纹 | 默认 true，便于后端判断构建。 |
+| `Backend verbose logging` | 是否打印后端 API 通信追踪 | 排障时临时开启，生产默认关闭。 |
+| `Backend payload logging` | 是否打印脱敏后的请求/响应内容 | 只在深度排障时开启。 |
+| `Backend max payload chars` | payload 日志最大字符数 | 超出会截断。 |
 | `Last check` | 最近授权结果 | 应显示 valid/trial 相关摘要。 |
 
 如果 `Last check` 显示失败，先排查 key、网络、后端地址和后端响应。
@@ -103,6 +106,46 @@ remote-operations:
   backups:
     enabled: false
 ```
+
+## 开启后端通信详细日志
+
+新增的开发者追踪配置位于 `backend-api.logging`：
+
+```yaml
+backend-api:
+  logging:
+    verbose: true
+    include-payloads: false
+    max-payload-chars: 2048
+```
+
+开启 `verbose` 后，控制台会打印：
+
+- 授权校验请求：`license.verify`
+- 远程运维注册：`ops.register`
+- WebSocket 连接：`ops.websocket`
+- RPC 请求与结果：`ops.rpc`
+- 远程重连原因：`ops.reconnect`
+- 遥测上报：`telemetry.events`
+- 遥测队列调度和丢弃：`telemetry.queue`
+
+每条日志会尽量包含 `requestId`、HTTP 方法、URI、状态码、耗时、body 字节数、RPC `jobId`、RPC `method` 等信息，方便开发者从服务端日志反查后端请求。
+
+`include-payloads` 默认应保持 false。只有需要核对后端请求/响应结构时才临时开启。开启后会打印经过脱敏和截断的 payload。
+
+已知会脱敏：
+
+- `licenseKey`
+- `activationToken`
+- `sessionToken`
+- `token`
+- `secret`
+- `password`
+- `key-store-password`
+- `X-Eco-Signature`
+- `Authorization: Bearer ...`
+
+仍然建议不要长期打开 payload 日志，因为第三方后端响应中可能包含插件未知的敏感字段名。
 
 ## 常见失败
 

@@ -96,17 +96,29 @@ object RemoteOperationsClient {
                 httpClient()
             }.getOrElse {
                 status = "register failed: ${it.message}"
+                BackendApiTrace.failure("ops.register", "client-setup", message = "HTTP client setup failed: ${it.message}")
                 scheduleReconnect("HTTP client setup failed")
                 return@runAsync
             }
+
+            val registerRequestId = UUID.randomUUID().toString()
+            val registerPayload = registrationPayload()
+            val registerUri = URI.create("${BackendApiPolicy.versionedApiUrl}/ops/instances/register")
+            BackendApiTrace.request("ops.register", registerRequestId, "POST", registerUri, registerPayload)
+            val registerStartedAt = BackendApiTrace.mark()
             val response = runCatching {
-                client.send(registerRequest(activationToken), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+                client.send(
+                    registerRequest(activationToken, registerRequestId, registerUri, registerPayload),
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+                )
             }.getOrElse {
                 status = "register failed: ${it.message}"
+                BackendApiTrace.failure("ops.register", registerRequestId, registerStartedAt, "register failed: ${it.message}")
                 scheduleReconnect("register failed")
                 return@runAsync
             }
 
+            BackendApiTrace.response("ops.register", registerRequestId, response.statusCode(), registerStartedAt, response.body())
             if (response.statusCode() !in 200..299) {
                 status = "register failed: HTTP ${response.statusCode()}"
                 scheduleReconnect("register HTTP ${response.statusCode()}")
@@ -127,6 +139,10 @@ object RemoteOperationsClient {
             instanceId = registeredInstanceId
             policyVersion = BackendJson.stringField(body, "policyVersion")
             currentSessionToken = sessionToken
+            BackendApiTrace.event(
+                "ops.register",
+                "registered instanceId=$registeredInstanceId policyVersion=${policyVersion ?: "unknown"} rpcUrl=$rpcUrl"
+            )
             connectWebSocket(client, normalizeWebSocketUrl(rpcUrl), sessionToken)
         }
     }
@@ -141,16 +157,20 @@ object RemoteOperationsClient {
             URI.create(rpcUrl).also(RemoteOperationSecurity::requireSecureUri)
         }.getOrElse {
             status = "websocket failed: ${it.message}"
+            BackendApiTrace.failure("ops.websocket", "uri", message = "websocket URI rejected: ${it.message}")
             scheduleReconnect("websocket URI rejected")
             return
         }
 
+        val requestId = UUID.randomUUID().toString()
         val builder = client.newWebSocketBuilder()
             .connectTimeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
             .header("Authorization", "Bearer $sessionToken")
             .header("User-Agent", userAgent())
-            .header("X-Request-Id", UUID.randomUUID().toString())
+            .header("X-Request-Id", requestId)
 
+        BackendApiTrace.request("ops.websocket", requestId, "GET", uri)
+        val startedAt = BackendApiTrace.mark()
         RemoteOperationSecurity.signWebSocket(
             builder,
             uri,
@@ -161,26 +181,36 @@ object RemoteOperationsClient {
             .whenComplete { socket, error ->
                 if (error != null) {
                     status = "websocket failed: ${error.message}"
+                    BackendApiTrace.failure(
+                        "ops.websocket",
+                        requestId,
+                        startedAt,
+                        "websocket connect failed: ${error.message}"
+                    )
                     scheduleReconnect("websocket connect failed")
                     return@whenComplete
                 }
 
                 webSocket = socket
+                BackendApiTrace.event("ops.websocket", "connected requestId=$requestId durationMs=${Duration.between(startedAt, Instant.now()).toMillis().coerceAtLeast(0)}")
             }
     }
 
-    private fun registerRequest(activationToken: String): HttpRequest {
-        val uri = URI.create("${BackendApiPolicy.versionedApiUrl}/ops/instances/register")
+    private fun registerRequest(
+        activationToken: String,
+        requestId: String,
+        uri: URI,
+        payload: String
+    ): HttpRequest {
         RemoteOperationSecurity.requireSecureUri(uri)
 
-        val payload = registrationPayload()
         val builder = HttpRequest.newBuilder()
             .uri(uri)
             .timeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
             .header("Authorization", "Bearer $activationToken")
             .header("Content-Type", "application/json; charset=utf-8")
             .header("User-Agent", userAgent())
-            .header("X-Request-Id", UUID.randomUUID().toString())
+            .header("X-Request-Id", requestId)
 
         RemoteOperationSecurity.signHttpRequest(
             builder,
@@ -233,14 +263,20 @@ object RemoteOperationsClient {
         val jobId = BackendJson.stringField(message, "jobId")
 
         if (BackendJson.stringField(message, "type") == "rpc.ping") {
+            BackendApiTrace.event("ops.rpc", "received ping requestId=$requestId")
             send(socket, mapOf("type" to "rpc.pong", "requestId" to requestId, "serverTime" to Instant.now().toString()))
             return
         }
 
+        BackendApiTrace.event(
+            "ops.rpc",
+            "received requestId=$requestId jobId=${jobId ?: "none"} method=${method ?: "missing"} bytes=${message.toByteArray(StandardCharsets.UTF_8).size}"
+        )
         runCatching {
             RemoteOperationSecurity.verifyRpcMessage(message, currentSessionToken)
         }.onFailure {
             val code = (it as? RemoteOperationException)?.code ?: "signature_invalid"
+            BackendApiTrace.failure("ops.rpc", requestId, message = "signature verification failed code=$code message=${it.message ?: code}")
             sendFailure(socket, requestId, jobId, code, it.message ?: code)
             return
         }
@@ -267,6 +303,10 @@ object RemoteOperationsClient {
             }
 
             result.onSuccess {
+                BackendApiTrace.event(
+                    "ops.rpc",
+                    "succeeded requestId=$requestId jobId=${jobId ?: "none"} method=$method"
+                )
                 send(
                     socket,
                     mapOf(
@@ -280,6 +320,7 @@ object RemoteOperationsClient {
                 )
             }.onFailure {
                 val code = (it as? RemoteOperationException)?.code ?: "operation_failed"
+                BackendApiTrace.failure("ops.rpc", requestId, message = "failed jobId=${jobId ?: "none"} method=$method code=$code message=${it.message ?: code}")
                 sendFailure(socket, requestId, jobId, code, it.message ?: code)
             }
         }
@@ -404,6 +445,7 @@ object RemoteOperationsClient {
         val max = BackendApiPolicy.remoteOperationsReconnectMaxSeconds.coerceAtLeast(min)
         val delay = (min * (1L shl attempt)).coerceAtMost(max)
         status = "reconnecting in ${delay}s ($reason)"
+        BackendApiTrace.event("ops.reconnect", "attempt=${attempt + 1} delaySeconds=$delay reason=$reason")
 
         CompletableFuture.delayedExecutor(delay, TimeUnit.SECONDS).execute {
             if (!stopping.get()) {

@@ -24,28 +24,36 @@ object OnlineLicenseGate {
             return fail("No license key is configured at license.key.")
         }
 
+        val requestId = UUID.randomUUID().toString()
+        val uri = URI.create("${BackendApiPolicy.versionedApiUrl}/licenses/verify")
+        val payload = buildPayload(key)
         val request = runCatching {
             HttpRequest.newBuilder()
-                .uri(URI.create("${BackendApiPolicy.versionedApiUrl}/licenses/verify"))
+                .uri(uri)
                 .timeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
                 .header("Content-Type", "application/json; charset=utf-8")
                 .header("User-Agent", userAgent())
-                .header("X-Request-Id", UUID.randomUUID().toString())
-                .POST(HttpRequest.BodyPublishers.ofString(buildPayload(key), StandardCharsets.UTF_8))
+                .header("X-Request-Id", requestId)
+                .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                 .build()
         }.getOrElse {
+            BackendApiTrace.failure("license.verify", requestId, message = "Could not build request: ${it.message}")
             return fail("Could not build license verification request: ${it.message}")
         }
 
+        BackendApiTrace.request("license.verify", requestId, "POST", uri, payload)
+        val startedAt = BackendApiTrace.mark()
         val response = runCatching {
             HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(BackendApiPolicy.timeoutMillis.toLong()))
                 .build()
                 .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
         }.getOrElse {
+            BackendApiTrace.failure("license.verify", requestId, startedAt, "License server is unreachable: ${it.message}")
             return fail("License server is unreachable: ${it.message}")
         }
 
+        BackendApiTrace.response("license.verify", requestId, response.statusCode(), startedAt, response.body())
         if (response.statusCode() != 200) {
             return fail("License server returned HTTP ${response.statusCode()}.")
         }
@@ -53,10 +61,15 @@ object OnlineLicenseGate {
         val body = response.body()
         val status = extractStatus(body)
         if (status == "valid" || status == "trial") {
+            val activationToken = BackendJson.stringField(body, "activationToken")
             lastResult = LicenseCheckResult.Valid(
                 status = status,
-                activationToken = BackendJson.stringField(body, "activationToken"),
+                activationToken = activationToken,
                 activationId = BackendJson.stringField(body, "activationId")
+            )
+            BackendApiTrace.event(
+                "license.verify",
+                "accepted status=$status activationTokenPresent=${!activationToken.isNullOrBlank()}"
             )
             plugin.logger.info("EcoEnchants license verified online with status '$status'.")
             return true
