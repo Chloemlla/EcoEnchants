@@ -8,11 +8,13 @@
 
 | 设置项 | 值 |
 | --- | --- |
+| Application Preset | `VitePress` |
+| Root Directory | `./` |
 | Install Command | `npm install` |
-| Build Command | `npm run docs:build` |
+| Build Command | `npm run build` |
 | Output Directory | `documentation/.vitepress/dist` |
 
-这些值与 `.github/workflows/docs.yml` 中的文档构建流程保持一致。
+Vercel 的 VitePress 默认示例通常使用 `docs/.vitepress/dist`，但本仓库的文档目录是 `documentation`，因此输出目录需要使用 `documentation/.vitepress/dist`。这些值与 `.github/workflows/docs.yml` 中的文档构建流程保持一致。
 
 ## Node.js 版本
 

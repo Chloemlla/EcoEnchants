@@ -41,7 +41,7 @@ jobs:
         run: npm install
 
       - name: Build VitePress docs
-        run: npm run docs:build
+        run: npm run build
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v4
