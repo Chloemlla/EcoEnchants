@@ -3,7 +3,7 @@ title: "Commands and Permissions"
 sidebar_position: 5
 ---
 
-Every command and its permission node is listed below. Permissions follow the `ecoenchants.command.<name>` pattern and are granted to operators by default.
+Every command and its permission node is listed below. Permissions follow the `ecoenchants.command.<name>` pattern and are granted to operators by default. `/ecoenchants` can also be run as `/ee`.
 
 | Command                                                          | Description                                                             | Permission                               |
 |------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------|
@@ -11,7 +11,9 @@ Every command and its permission node is listed below. Permissions follow the `e
 | `/ecoenchants reload`                                            | Reload the plugin configs (adding new enchantments requires re-logging) | `ecoenchants.command.reload`             |
 | `/enchant <enchant> [level]`                                     | Add or remove an enchantment from your held item; use level `0` to remove | `ecoenchants.command.enchant`          |
 | `/enchant <player> <enchant> [level]`                            | Console form of `/enchant`                                              | `ecoenchants.command.enchant`            |
-| `/enchantinfo <enchant> [level]`                                 | Open the enchant info GUI for the specified enchantment at an optional level | `ecoenchants.command.enchantinfo`   |
+| `/enchantinfo [enchant] [level]`                                 | Open the enchant info GUI; with no arguments, lists the enchantments on your held item as clickable chat lines | `ecoenchants.command.enchantinfo`   |
+| `/ecoenchants search <query>`                                    | Search enchantments by name and return clickable results that open their info | `ecoenchants.command.search`       |
+| `/ecoenchants favorites`                                         | List your bookmarked enchantments as clickable chat lines               | `ecoenchants.command.favorites`          |
 | `/ecoenchants gui`                                               | Open the enchantment GUI                                                | `ecoenchants.command.gui`                |
 | `/ecoenchants services`                                          | Show license, `/api/ecoenchants/v1`, remote operations, and local service status | `ecoenchants.command.services`     |
 | `/ecoenchants guide [book]`                                      | Show the player guide, or give the player an in-game guide book                  | `ecoenchants.command.guide`        |

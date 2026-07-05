@@ -1,10 +1,13 @@
 package com.willfp.ecoenchants.commands
 
 import com.willfp.eco.core.command.impl.PluginCommand
+import com.willfp.eco.core.fast.fast
 import com.willfp.ecoenchants.display.getFormattedName
 import com.willfp.ecoenchants.enchant.EcoEnchants
 import com.willfp.ecoenchants.enchant.EnchantGUI
+import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.plugin
+import com.willfp.ecoenchants.sendClickableLine
 import com.willfp.ecoenchants.stripLegacyFormatting
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -34,6 +37,10 @@ object CommandEnchantInfo : PluginCommand(
         sender as Player
 
         if (args.isEmpty()) {
+            if (showHeldItemEnchants(sender)) {
+                return
+            }
+
             sender.sendMessage(this.plugin.langYml.getMessage("missing-enchant"))
             sender.sendMessage(this.plugin.langYml.getMessage("enchantinfo-usage"))
             return
@@ -53,6 +60,47 @@ object CommandEnchantInfo : PluginCommand(
         }
 
         EnchantGUI.openInfoGUI(sender, enchantment, level ?: -1)
+    }
+
+    /**
+     * Lists the EcoEnchants on the player's main-hand item as clickable chat lines
+     * (each reopens the info GUI via /enchantinfo). Returns false when the held item
+     * has no EcoEnchants enchantments so the caller can fall back to the usage message.
+     */
+    private fun showHeldItemEnchants(player: Player): Boolean {
+        val item = player.inventory.itemInMainHand
+        if (item.type.isAir) {
+            return false
+        }
+
+        val ecoByEnchantment = EcoEnchants.values().associateBy { it.enchantment }
+        val onItem = item.fast().getEnchants(true)
+            .mapNotNull { (enchantment, level) -> ecoByEnchantment[enchantment]?.let { it to level } }
+            .sortedBy { it.first.getFormattedName(0).stripLegacyFormatting().lowercase() }
+
+        if (onItem.isEmpty()) {
+            return false
+        }
+
+        PlayerExperience.sendLangLines(
+            player,
+            "commands.enchantinfo.held-header",
+            "count" to onItem.size.toString()
+        )
+
+        val line = plugin.langYml.getStrings("commands.enchantinfo.held-line").firstOrNull() ?: "&7- %enchant%"
+        val hover = plugin.langYml.getStrings("commands.enchantinfo.held-hover").firstOrNull()
+
+        for ((enchant, level) in onItem) {
+            val plainName = enchant.getFormattedName(0).stripLegacyFormatting()
+            player.sendClickableLine(
+                line.replace("%enchant%", enchant.getFormattedName(level)),
+                "/enchantinfo $plainName $level",
+                hover?.replace("%enchant%", enchant.getFormattedName(level))
+            )
+        }
+
+        return true
     }
 
     override fun tabComplete(sender: CommandSender, args: List<String>): List<String> {

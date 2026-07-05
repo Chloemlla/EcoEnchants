@@ -239,6 +239,11 @@ player-experience:
     on-browser-open: true
     on-empty-results: true
     on-filter-change: true
+    on-hold-enchantable: true # Action-bar tip when holding an enchantable item
+
+  # /ecoenchants search options
+  search:
+    max-results: 15 # Max clickable results shown per search
 
   sounds:
     invalid-click:
@@ -261,6 +266,23 @@ enchantinfo:
     column: 5
     show-max-level: true # Whether the book should be the max level or level 1
     lore-key: gui.enchantinfo.item.lore # The description is automatically appended
+
+  # Click-to-bookmark button. Toggles the enchantment in the player's favorites.
+  favorite:
+    enabled: true
+    row: 1
+    column: 5
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 1.2
+    add:
+      item: gray_dye
+      name-key: gui.enchantinfo.favorite.add.name
+      lore-key: gui.enchantinfo.favorite.add.lore
+    remove:
+      item: yellow_dye
+      name-key: gui.enchantinfo.favorite.remove.name
+      lore-key: gui.enchantinfo.favorite.remove.lore
 
   # Custom GUI slots; see here for a how-to: https://plugins.auxilor.io/all-plugins/custom-gui-slots
   custom-slots: [ ]
@@ -402,6 +424,28 @@ enchant-gui:
       sound: ui.button.click
       sound-volume: 1.0
       sound-pitch: 1.1
+    favorites-only:
+      enabled: true
+      item: nether_star
+      name-key: gui.enchant.filters.favorites-only.name
+      lore-key: gui.enchant.filters.favorites-only.lore
+      row: 1
+      column: 7
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+
+  # Cycles the browser's sort order for the viewing player (name / rarity / max level).
+  sort:
+    enabled: true
+    item: hopper
+    name-key: gui.enchant.sort.name
+    lore-key: gui.enchant.sort.lore
+    row: 2
+    column: 5
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 1.0
 
   # Shows chat hints about which enchantments conflict with the item in the captive slot.
   conflict-view:

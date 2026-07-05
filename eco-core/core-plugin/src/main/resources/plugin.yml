@@ -17,6 +17,7 @@ commands:
   ecoenchants:
     description: Main EcoEnchants command and help
     permission: ecoenchants.command.ecoenchants
+    aliases: [ ee ]
   enchantinfo:
     description: Show detailed information about an enchantment
     permission: ecoenchants.command.enchantinfo
@@ -46,6 +47,8 @@ permissions:
       ecoenchants.command.gui: true
       ecoenchants.command.enchant: true
       ecoenchants.command.services: true
+      ecoenchants.command.search: true
+      ecoenchants.command.favorites: true
   ecoenchants.anvil.*:
     description: All anvil perks
     default: op
@@ -85,3 +88,9 @@ permissions:
   ecoenchants.command.services:
     description: Allows checking the EcoEnchants online license gate status.
     default: op
+  ecoenchants.command.search:
+    description: Allows the use of /ecoenchants search.
+    default: true
+  ecoenchants.command.favorites:
+    description: Allows the use of /ecoenchants favorites.
+    default: true

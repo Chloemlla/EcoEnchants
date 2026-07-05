@@ -26,8 +26,10 @@ import com.willfp.eco.util.lineWrap
 import com.willfp.eco.util.toNiceString
 import com.willfp.ecoenchants.display.EnchantSorter.sortForDisplay
 import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
+import com.willfp.ecoenchants.display.RaritySorter
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
+import com.willfp.ecoenchants.experience.Favorites
 import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.plugin
 import com.willfp.ecoenchants.rarity.EnchantmentRarities
@@ -106,9 +108,13 @@ object EnchantGUI : Listener {
 
                 // Apply group filter if a groupId is set in menu state
                 val groupId = menu.getState<String>(player, "groupId")
+                val favoritesOnly = menu.getState<Boolean>(player, "favoritesOnly") ?: false
+                val sortOrder = menu.getState<String>(player, "sortOrder").orEmpty()
                 val filteredEnchants = baseEnchants
                     .filter { it.matchesGroupFilter(groupId) }
                     .filter { it.matchesCycleFilters(player, menu) }
+                    .filter { !favoritesOnly || Favorites.contains(player, it) }
+                    .applyGuiSort(sortOrder)
 
                 // Reset to page 1 when an item is placed or removed from the captive slot
                 val previousHasItem = menu.getState<Boolean>(player, "hasItem") ?: false
@@ -135,7 +141,7 @@ object EnchantGUI : Listener {
                 if (filteredEnchants.isEmpty()) {
                     PlayerExperience.handleEmptyResults(
                         player,
-                        getEmptyResultReason(hasItem, groupId, menu.hasCycleFilters(player), compatibleOnly)
+                        getEmptyResultReason(hasItem, groupId, menu.hasCycleFilters(player) || favoritesOnly, compatibleOnly)
                     )
                 } else {
                     PlayerExperience.clearEmptyResults(player)
@@ -189,6 +195,20 @@ object EnchantGUI : Listener {
                 plugin.configYml.getInt("enchant-gui.conflict-view.row"),
                 plugin.configYml.getInt("enchant-gui.conflict-view.column"),
                 ConflictViewButton()
+            )
+
+            addComponent(
+                MenuLayer.TOP,
+                plugin.configYml.getInt("enchant-gui.filters.favorites-only.row"),
+                plugin.configYml.getInt("enchant-gui.filters.favorites-only.column"),
+                FavoritesOnlyButton()
+            )
+
+            addComponent(
+                MenuLayer.TOP,
+                plugin.configYml.getInt("enchant-gui.sort.row"),
+                plugin.configYml.getInt("enchant-gui.sort.column"),
+                SortCycleButton()
             )
 
             if (plugin.configYml.getBool("enchant-gui.close-button.enabled")) {
@@ -427,6 +447,15 @@ object EnchantGUI : Listener {
                         *plugin.configYml.getStrings("enchantinfo.mask.pattern").toTypedArray()
                     )
                 )
+
+                if (plugin.configYml.getBool("enchantinfo.favorite.enabled")) {
+                    addComponent(
+                        MenuLayer.TOP,
+                        plugin.configYml.getInt("enchantinfo.favorite.row"),
+                        plugin.configYml.getInt("enchantinfo.favorite.column"),
+                        FavoriteButton(enchant, effectiveLevel)
+                    )
+                }
 
                 for (config in plugin.configYml.getSubsections("enchantinfo.custom-slots")) {
                     setSlot(
@@ -745,6 +774,113 @@ object EnchantGUI : Listener {
         override fun getColumns() = 1
     }
 
+    private class FavoritesOnlyButton : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+        private val configPath = "enchant-gui.filters.favorites-only"
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")) {
+                return emptySlot
+            }
+
+            val enabled = menu.getState<Boolean>(player, "favoritesOnly") ?: false
+
+            return slot(
+                buildGuiItem(
+                    configPath,
+                    mapOf("state" to enabled.parseEnabledDisabled())
+                )
+            ) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val current = menu.getState<Boolean>(clickedPlayer, "favoritesOnly") ?: false
+
+                    menu.setState(clickedPlayer, "favoritesOnly", !current)
+                    menu.setState(clickedPlayer, Page.PAGE_KEY, 1)
+                    clickedPlayer.playConfiguredSound("$configPath.sound")
+                    PlayerExperience.handleFilterChanged(
+                        clickedPlayer,
+                        "favorites-only",
+                        (!current).parseEnabledDisabled()
+                    )
+                    menu.open(clickedPlayer)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private class SortCycleButton : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+        private val configPath = "enchant-gui.sort"
+        private val order = listOf("", "name", "rarity", "level")
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")) {
+                return emptySlot
+            }
+
+            val current = menu.getState<String>(player, "sortOrder").orEmpty()
+
+            return slot(
+                buildGuiItem(
+                    configPath,
+                    mapOf("current" to sortDisplayName(current))
+                )
+            ) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val cur = menu.getState<String>(clickedPlayer, "sortOrder").orEmpty()
+                    val next = order[(order.indexOf(cur).coerceAtLeast(0) + 1) % order.size]
+
+                    menu.setState(clickedPlayer, "sortOrder", next)
+                    menu.setState(clickedPlayer, Page.PAGE_KEY, 1)
+                    clickedPlayer.playConfiguredSound("$configPath.sound")
+                    menu.open(clickedPlayer)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
+    private class FavoriteButton(
+        private val enchant: EcoEnchant,
+        private val level: Int
+    ) : GUIComponent {
+        private val emptySlot = slot(ItemStack(Material.AIR))
+        private val configPath = "enchantinfo.favorite"
+
+        override fun getSlotAt(row: Int, column: Int, player: Player, menu: Menu): Slot {
+            if (!plugin.configYml.getBool("$configPath.enabled")) {
+                return emptySlot
+            }
+
+            val isFavorite = Favorites.contains(player, enchant)
+            val itemPath = if (isFavorite) "$configPath.remove" else "$configPath.add"
+
+            return slot(buildGuiItem(itemPath)) {
+                onLeftClick { event, _ ->
+                    val clickedPlayer = event.whoClicked as Player
+                    val nowFavorite = Favorites.toggle(clickedPlayer, enchant)
+
+                    clickedPlayer.playConfiguredSound("$configPath.sound")
+                    clickedPlayer.sendLangMessage(
+                        if (nowFavorite) "favorite-added" else "favorite-removed",
+                        "enchant" to enchant.getFormattedName(level)
+                    )
+                    menu.open(clickedPlayer)
+                }
+            }
+        }
+
+        override fun getRows() = 1
+        override fun getColumns() = 1
+    }
+
     private class AdminToolButton(
         private val tool: AdminTool
     ) : GUIComponent {
@@ -988,6 +1124,26 @@ private fun Collection<EcoEnchant>.sortForGui(): List<EcoEnchant> {
     val byEnchantment = this.associateBy { it.enchantment }
     return this.map { it.enchantment }.sortForDisplay()
         .mapNotNull { byEnchantment[it] }
+}
+
+// Per-player, per-session sort override for the enchant browser. Blank keeps the
+// configured global display order (already applied to the base lists).
+private fun List<EcoEnchant>.applyGuiSort(order: String): List<EcoEnchant> = when (order) {
+    "name" -> this.sortedBy { it.getFormattedName(0).stripLegacyFormattingForSort().lowercase(Locale.ROOT) }
+    "rarity" -> this.sortedWith(
+        compareBy<EcoEnchant> { RaritySorter.orderOf(it.enchantmentRarity) ?: Int.MAX_VALUE }
+            .thenBy { it.getFormattedName(0).stripLegacyFormattingForSort().lowercase(Locale.ROOT) }
+    )
+    "level" -> this.sortedWith(
+        compareByDescending<EcoEnchant> { it.maximumLevel }
+            .thenBy { it.getFormattedName(0).stripLegacyFormattingForSort().lowercase(Locale.ROOT) }
+    )
+    else -> this
+}
+
+private fun sortDisplayName(order: String): String {
+    val key = order.ifBlank { "default" }
+    return plugin.langYml.getFormattedString("gui.enchant.sort.values.$key")
 }
 
 private fun getConfiguredGuiTitle(configPath: String): String {

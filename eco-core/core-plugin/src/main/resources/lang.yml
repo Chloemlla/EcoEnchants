@@ -32,6 +32,8 @@ messages:
   returned-gui-items-with-overflow: "&f已归还 / Returned &a%amount%&f 个 GUI 物品 / GUI item(s). &e%dropped% &f个因背包已满掉落在附近 / dropped nearby because your inventory was full."
   opened-admin-gui: "&f已打开管理员工具 / Opened admin tools."
   admin-gui-disabled: "&c管理员工具已禁用 / Admin tools are disabled."
+  favorite-added: "&f已收藏 / Favorited: %enchant%&f. &7使用 &f/ecoenchants favorites &7查看全部收藏。"
+  favorite-removed: "&f已取消收藏 / Unfavorited: %enchant%&f."
 
 gui:
   common:
@@ -75,6 +77,21 @@ gui:
         - "&e便捷提示 / Quick Tip"
         - "&7使用 &f/enchantinfo <名称> [等级] &7可随时查看"
         - "&8Use /enchantinfo <name> [level] to reopen details"
+    favorite:
+      add:
+        name: "&e☆ 加入收藏 / Add to Favorites"
+        lore:
+          - "&7点击收藏该附魔"
+          - "&8Click to bookmark this enchantment"
+          - ""
+          - "&e便捷提示 / Quick Tip"
+          - "&7使用 &f/ecoenchants favorites &7快速回看收藏"
+          - "&8Use /ecoenchants favorites to revisit bookmarks"
+      remove:
+        name: "&6★ 已收藏 / Favorited"
+        lore:
+          - "&7点击取消收藏"
+          - "&8Click to remove this bookmark"
 
   enchant:
     title: "&8附魔浏览 / Enchant Browser"
@@ -169,6 +186,29 @@ gui:
           - "&8Click to show compatible enchants only"
           - "&7没有放入物品时会显示全部附魔"
           - "&8Without an item, all enchants are shown"
+      favorites-only:
+        name: "&6仅看收藏 / Favorites: &f%state%"
+        lore:
+          - "&7点击切换是否只显示已收藏的附魔"
+          - "&8Click to show only your favorited enchants"
+          - ""
+          - "&e便捷提示 / Quick Tip"
+          - "&7在附魔详情界面点星标即可收藏"
+          - "&8Star an enchant on its info screen to favorite it"
+    sort:
+      name: "&b排序方式 / Sort: &f%current%"
+      lore:
+        - "&7点击切换排序：名称 / 稀有度 / 最高等级"
+        - "&8Click to cycle: name / rarity / max level"
+        - ""
+        - "&e便捷提示 / Quick Tip"
+        - "&7排序只影响你自己当前的浏览"
+        - "&8Sorting only affects your own current view"
+      values:
+        default: "&f默认 / Default"
+        name: "&f名称 / Name"
+        rarity: "&f稀有度 / Rarity"
+        level: "&f最高等级 / Max Level"
     conflict-view:
       name: "&6冲突查看 / Conflicts"
       lore:
@@ -242,8 +282,12 @@ commands:
       - "&a&lEcoEnchants &7- &f可用命令 / Available Commands"
     gui:
       - "&e/ecoenchants gui &7- 打开附魔浏览器 / Open the enchant browser"
+    search:
+      - "&e/ecoenchants search <关键词> &7- 搜索附魔 / Search enchantments"
     enchantinfo:
-      - "&e/enchantinfo <name> [level] &7- 查看附魔详情 / View enchant details"
+      - "&e/enchantinfo [name] [level] &7- 查看附魔详情，空参看手持物品 / View details; empty reads held item"
+    favorites:
+      - "&e/ecoenchants favorites &7- 查看收藏的附魔 / View favorited enchantments"
     toggledescriptions:
       - "&e/ecoenchants toggledescriptions &7- 切换物品描述显示 / Toggle lore descriptions"
     guide:
@@ -258,6 +302,33 @@ commands:
       - "&e/ecoenchants services &7- 查看后端与运行状态 / Show service status"
     experience:
       - "&e/ecoenchants experience &7- 查看玩家体验提示统计 / Show player experience stats"
+  search:
+    usage:
+      - "&e用法 / Usage: &f/ecoenchants search <关键词/keyword>"
+    header:
+      - "&a搜索结果 / Search: &f%query% &7(%count%)&7 — 点击查看 / click to view"
+    result:
+      - "&7- %enchant%"
+    result-hover:
+      - "&7点击查看 %enchant% &7详情 / Click to view details"
+    no-results:
+      - "&c没有找到匹配 &f%query% &c的附魔 / No enchantments match &f%query%&c. &7换个关键词，或用 &f/ecoenchants gui &7浏览。"
+  favorites:
+    header:
+      - "&a我的收藏 / Favorites &7(%count%) — 点击查看 / click to view"
+    line:
+      - "&7- %enchant%"
+    hover:
+      - "&7点击查看 %enchant% &7详情 / Click to view details"
+    empty:
+      - "&e你还没有收藏任何附魔 / No favorites yet. &7在附魔详情界面点星标即可收藏，或用 &f/ecoenchants gui&7。"
+  enchantinfo:
+    held-header:
+      - "&a手持物品附魔 / Held item enchantments &7(%count%) — 点击查看 / click to view"
+    held-line:
+      - "&7- %enchant%"
+    held-hover:
+      - "&7点击查看 %enchant% &7详情 / Click to view details"
   guide:
     lines:
       - "&a&lEcoEnchants 指南 / Guide"
@@ -278,6 +349,11 @@ commands:
 hints:
   join:
     - "&aEcoEnchants 提示 / Tip: &7使用 &f/ecoenchants gui &7浏览附魔，使用 &f/ecoenchants guide &7查看指南。"
+  hold-enchantable:
+    actionbar:
+      - "&a附魔提示 / Tip: &7/ecoenchants gui 浏览可用附魔 · /enchantinfo 查看手持附魔"
+    chat:
+      - "&a便捷提示 / Tip: &7手上的物品可以附魔！点此打开附魔浏览器 &f[/ecoenchants gui]&7。"
   browser-open:
     - "&a便捷提示 / Tip: &7把装备放到顶部中间槽位，会自动只显示可添加的附魔。"
   filter-changed:

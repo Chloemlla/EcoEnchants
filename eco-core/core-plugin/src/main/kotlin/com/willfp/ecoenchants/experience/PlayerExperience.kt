@@ -7,11 +7,15 @@ import com.willfp.eco.util.NamespacedKeyUtils
 import com.willfp.eco.util.formatEco
 import com.willfp.ecoenchants.enchant.EcoEnchants
 import com.willfp.ecoenchants.plugin
+import com.willfp.ecoenchants.sendActionBarHint
+import com.willfp.ecoenchants.sendClickableLine
+import com.willfp.ecoenchants.target.EnchantmentTargets.applicableEnchantments
 import org.bukkit.Material
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerItemHeldEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BookMeta
@@ -27,6 +31,12 @@ object PlayerExperience : Listener {
 
     private val seenBrowserHintKey = PersistentDataKey(
         NamespacedKeyUtils.create("ecoenchants", "seen_browser_hint"),
+        PersistentDataKeyType.BOOLEAN,
+        false
+    )
+
+    private val seenHoldHintKey = PersistentDataKey(
+        NamespacedKeyUtils.create("ecoenchants", "seen_hold_hint"),
         PersistentDataKeyType.BOOLEAN,
         false
     )
@@ -54,6 +64,43 @@ object PlayerExperience : Listener {
 
         player.profile.write(seenJoinHintKey, true)
         sendLangLines(player, "hints.join")
+    }
+
+    @EventHandler
+    fun handleItemHeld(event: PlayerItemHeldEvent) {
+        if (!plugin.configYml.getBool("player-experience.auto-hints.enabled")
+            || !plugin.configYml.getBool("player-experience.auto-hints.on-hold-enchantable")) {
+            return
+        }
+
+        val player = event.player
+        val item = player.inventory.getItem(event.newSlot) ?: return
+        if (item.type == Material.AIR) {
+            return
+        }
+
+        val enchantable = item.type == Material.ENCHANTED_BOOK || item.applicableEnchantments.isNotEmpty()
+        if (!enchantable) {
+            return
+        }
+
+        if (!canSendHint(player, "hold-enchantable")) {
+            return
+        }
+
+        val actionBar = plugin.langYml.getStrings("hints.hold-enchantable.actionbar").firstOrNull()
+        if (!actionBar.isNullOrBlank()) {
+            player.sendActionBarHint(actionBar)
+        }
+
+        // The first time only, also send a clickable chat prompt that opens the browser.
+        if (!player.profile.read(seenHoldHintKey)) {
+            player.profile.write(seenHoldHintKey, true)
+            val chat = plugin.langYml.getStrings("hints.hold-enchantable.chat").firstOrNull()
+            if (!chat.isNullOrBlank()) {
+                player.sendClickableLine(chat, "/ecoenchants gui")
+            }
+        }
     }
 
     fun handleBrowserOpen(player: Player) {
@@ -232,7 +279,9 @@ object PlayerExperience : Listener {
 
     private val helpEntries = listOf(
         HelpEntry("ecoenchants.command.gui", "commands.help.gui"),
+        HelpEntry("ecoenchants.command.search", "commands.help.search"),
         HelpEntry("ecoenchants.command.enchantinfo", "commands.help.enchantinfo"),
+        HelpEntry("ecoenchants.command.favorites", "commands.help.favorites"),
         HelpEntry("ecoenchants.command.toggledescriptions", "commands.help.toggledescriptions"),
         HelpEntry("ecoenchants.command.guide", "commands.help.guide"),
         HelpEntry("ecoenchants.command.enchant", "commands.help.enchant"),

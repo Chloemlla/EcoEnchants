@@ -22,6 +22,8 @@ object CommandEcoEnchants : PluginCommand(
     init {
         addSubcommand(CommandHelp)
             .addSubcommand(CommandGuide)
+            .addSubcommand(CommandSearch)
+            .addSubcommand(CommandFavorites)
             .addSubcommand(CommandExperience)
             .addSubcommand(CommandReload)
             .addSubcommand(CommandToggleDescriptions)
