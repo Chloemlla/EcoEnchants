@@ -1,6 +1,6 @@
 package com.willfp.ecoenchants.enchant
 
-import com.github.benmanes.caffeine.cache.Caffeine
+import com.willfp.eco.core.cache.EcoCache
 import com.willfp.eco.core.config.interfaces.Config
 import com.willfp.eco.core.drops.DropQueue
 import com.willfp.eco.core.fast.fast
@@ -52,7 +52,7 @@ object EnchantGUI : Listener {
     private lateinit var menu: Menu
     private var groupMenu: Menu? = null
     private var adminMenu: Menu? = null
-    private val enchantInfoMenus = Caffeine.newBuilder().build<Pair<EcoEnchant, Int>, Menu>()
+    private val enchantInfoMenus = EcoCache.builder<Pair<EcoEnchant, Int>, Menu>().build()
     private var allEnchantsSorted: List<EcoEnchant> = emptyList()
     private val returnedOnDisconnect = mutableSetOf<UUID>()
 
@@ -97,13 +97,16 @@ object EnchantGUI : Listener {
                 val compatibleOnly = menu.getState<Boolean>(player, "compatibleOnly")
                     ?: plugin.configYml.getBool("enchant-gui.filters.compatible-only.default-enabled")
 
+                val canSeeHidden = player.hasPermission("ecoenchants.seehidden")
                 val baseEnchants = if (hasItem && compatibleOnly) {
                     val currentEnchants = atCaptive.fast().enchants.keys
                     applicableEnchantmentsSorted.get(HashedItem.of(atCaptive)) {
-                        atCaptive.applicableEnchantments.sortForGui()
+                        atCaptive.applicableEnchantments
+                            .filter { !it.isHiddenFromGui || canSeeHidden }
+                            .sortForGui()
                     }.filterNot { it.enchantment in currentEnchants }
                 } else {
-                    allEnchantsSorted
+                    allEnchantsSorted.filter { !it.isHiddenFromGui || canSeeHidden }
                 }
 
                 // Apply group filter if a groupId is set in menu state
@@ -1038,11 +1041,11 @@ private data class GuiFilterValue(
     val displayName: String
 )
 
-private val cachedEnchantmentSlots = Caffeine.newBuilder()
-    .build<Pair<EcoEnchant, Int>, Slot>()
+private val cachedEnchantmentSlots = EcoCache.builder<Pair<EcoEnchant, Int>, Slot>()
+    .build()
 
-private val applicableEnchantmentsSorted = Caffeine.newBuilder()
-    .build<HashedItem, List<EcoEnchant>>()
+private val applicableEnchantmentsSorted = EcoCache.builder<HashedItem, List<EcoEnchant>>()
+    .build()
 
 private enum class GuiPageDirection {
     FORWARDS,

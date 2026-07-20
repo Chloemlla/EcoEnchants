@@ -21,6 +21,7 @@ object CommandEnchantInfo : PluginCommand(
 ) {
     private var enchantmentCompletions: List<String> = emptyList()
     private var levelCompletionsByName = emptyMap<String, List<String>>()
+    private var hiddenEnchantNames = emptySet<String>()
 
     internal fun reload() {
         val namesWithEnchantments = EcoEnchants.values().map { enchantment ->
@@ -31,6 +32,10 @@ object CommandEnchantInfo : PluginCommand(
         levelCompletionsByName = namesWithEnchantments.associate { (name, enchantment) ->
             name.lowercase() to (1..enchantment.maximumLevel).map { it.toString() }
         }
+        hiddenEnchantNames = namesWithEnchantments
+            .filter { it.second.isHiddenFromGui }
+            .map { it.first.lowercase() }
+            .toSet()
     }
 
     override fun onExecute(sender: CommandSender, args: List<String>) {
@@ -52,7 +57,7 @@ object CommandEnchantInfo : PluginCommand(
 
         val enchantment = EcoEnchants.getByName(searchName)
 
-        if (enchantment == null) {
+        if (enchantment == null || (enchantment.isHiddenFromGui && !sender.hasPermission("ecoenchants.seehidden"))) {
             val message = plugin.langYml.getMessage("not-found").replace("%name%", searchName)
             sender.sendMessage(message)
             sender.sendMessage(plugin.langYml.getMessage("enchantinfo-browse-hint"))
@@ -73,9 +78,11 @@ object CommandEnchantInfo : PluginCommand(
             return false
         }
 
+        val canSeeHidden = player.hasPermission("ecoenchants.seehidden")
         val ecoByEnchantment = EcoEnchants.values().associateBy { it.enchantment }
         val onItem = item.fast().getEnchants(true)
             .mapNotNull { (enchantment, level) -> ecoByEnchantment[enchantment]?.let { it to level } }
+            .filter { (enchant, _) -> !enchant.isHiddenFromGui || canSeeHidden }
             .sortedBy { it.first.getFormattedName(0).stripLegacyFormatting().lowercase() }
 
         if (onItem.isEmpty()) {
@@ -109,23 +116,30 @@ object CommandEnchantInfo : PluginCommand(
         }
 
         val completions = mutableListOf<String>()
+        val canSeeHidden = sender.hasPermission("ecoenchants.seehidden")
+        val visibleCompletions = if (canSeeHidden) {
+            enchantmentCompletions
+        } else {
+            enchantmentCompletions.filterNot { it.lowercase() in hiddenEnchantNames }
+        }
 
         if (args.isEmpty()) {
             // Currently, this case is not ever reached
-            return enchantmentCompletions
+            return visibleCompletions
         }
 
         // If all args except the last form a complete enchant name, suggest level numbers
         if (args.size > 1) {
             val namePrefix = args.dropLast(1).joinToString(" ")
             val levels = levelCompletionsByName[namePrefix.lowercase()]
-            if (levels != null) {
+            val matched = EcoEnchants.getByName(namePrefix)
+            if (levels != null && matched != null && (!matched.isHiddenFromGui || canSeeHidden)) {
                 StringUtil.copyPartialMatches(args.last(), levels, completions)
                 return completions
             }
         }
 
-        StringUtil.copyPartialMatches(args.joinToString(" "), enchantmentCompletions, completions)
+        StringUtil.copyPartialMatches(args.joinToString(" "), visibleCompletions, completions)
 
         if (args.size > 1) {
             val prefix = args.dropLast(1).joinToString(" ") + " "

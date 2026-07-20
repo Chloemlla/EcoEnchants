@@ -34,3 +34,5 @@ fun getEnchantmentByID(id: String): Enchantment? {
 fun Enchantment.conflictsWithDeep(other: Enchantment): Boolean {
     return this.conflictsWith(other) || other.conflictsWith(this)
 }
+
+internal fun Int.infiniteIfNegative() = if (this < 1) Int.MAX_VALUE else this
