@@ -29,6 +29,7 @@ import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
 import com.willfp.ecoenchants.display.RaritySorter
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
+import com.willfp.ecoenchants.dragdrop.isDragAndDropEnabled
 import com.willfp.ecoenchants.experience.Favorites
 import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.plugin
@@ -1391,12 +1392,13 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
                                 required.wrap().getFormattedName(0)
                             }.ifEmpty { plugin.langYml.getFormattedString("no-required") },
                             "tradeable" to this.isObtainableThroughTrading.parseYesOrNo(),
-                            "discoverable" to this.isObtainableThroughDiscovery.parseYesOrNo(),
-                            "discoverable_chests" to this.isObtainableThrough(DiscoveryType.CHESTS).parseYesOrNo(),
-                            "discoverable_fishing" to this.isObtainableThrough(DiscoveryType.FISHING).parseYesOrNo(),
-                            "discoverable_mob_drops" to this.isObtainableThrough(DiscoveryType.MOB_DROPS).parseYesOrNo(),
-                            "discoverable_raids" to this.isObtainableThrough(DiscoveryType.RAIDS).parseYesOrNo(),
-                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo()
+                            "discoverable" to this.isObtainableThroughDiscovery.parseDiscoverable(),
+                            "discoverable_chests" to this.isObtainableThrough(DiscoveryType.CHESTS).parseDiscoverable(DiscoveryType.CHESTS),
+                            "discoverable_fishing" to this.isObtainableThrough(DiscoveryType.FISHING).parseDiscoverable(DiscoveryType.FISHING),
+                            "discoverable_mob_drops" to this.isObtainableThrough(DiscoveryType.MOB_DROPS).parseDiscoverable(DiscoveryType.MOB_DROPS),
+                            "discoverable_raids" to this.isObtainableThrough(DiscoveryType.RAIDS).parseDiscoverable(DiscoveryType.RAIDS),
+                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo(),
+                            "drag_and_drop" to this.isDragAndDropEnabled().parseYesOrNo()
                         )
                     )
                         .formatEco()
@@ -1416,3 +1418,8 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
 
 fun Boolean.parseYesOrNo(): String =
     if (this) plugin.langYml.getFormattedString("yes") else plugin.langYml.getFormattedString("no")
+
+fun Boolean.parseDiscoverable(type: DiscoveryType? = null): String {
+    val path = if (type != null) "discoverable.${type.configKey}" else "discoverable"
+    return plugin.langYml.getFormattedString("$path.$this")
+}

@@ -21,6 +21,12 @@ Every command and its permission node is listed below. Permissions follow the `e
 | `/ecoenchants giverandombook <player> [type/rarity] [min] [max]` | Give a player a random enchanted book                                   | `ecoenchants.command.giverandombook`     |
 | `/ecoenchants toggledescriptions`                                | Let players toggle enchantment descriptions                             | `ecoenchants.command.toggledescriptions` |
 
+### PlaceholderAPI
+
+| Placeholder                          | Description                                             |
+|--------------------------------------|---------------------------------------------------------|
+| `%ecoenchants_descriptions_enabled%` | Whether the player has enchantment descriptions enabled |
+
 ### Additional permissions
 
 | Permission                   | Description                                                                                   |

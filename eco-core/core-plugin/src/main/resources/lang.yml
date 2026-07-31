@@ -73,6 +73,7 @@ gui:
         - "&fDiscovery - Mob Drops: &a%discoverable_mob_drops%"
         - "&fDiscovery - Raids: &a%discoverable_raids%"
         - "&f附魔台 / Enchanting: &a%enchantable%"
+        - "&f拖放应用 / Drag and Drop: &a%drag_and_drop%"
         - ""
         - "&e便捷提示 / Quick Tip"
         - "&7使用 &f/enchantinfo <名称> [等级] &7可随时查看"
@@ -389,3 +390,19 @@ disabled: "&c关闭 / Disabled"
 no-conflicts: "无冲突 / No Conflicts"
 all-conflicts: "与所有其他附魔冲突 / All Other Enchantments"
 no-required: "无前置 / No Requirements"
+
+discoverable:
+  "true": "&a是 / Yes"
+  "false": "&c否 / No"
+  chests:
+    "true": "&a是 / Yes"
+    "false": "&c否 / No"
+  fishing:
+    "true": "&a是 / Yes"
+    "false": "&c否 / No"
+  mob-drops:
+    "true": "&a是 / Yes"
+    "false": "&c否 / No"
+  raids:
+    "true": "&a是 / Yes"
+    "false": "&c否 / No"
