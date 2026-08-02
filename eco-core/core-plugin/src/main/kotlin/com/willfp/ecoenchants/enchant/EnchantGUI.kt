@@ -1392,21 +1392,22 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
                             "required" to this.required.joinToString(", ") { required ->
                                 required.wrap().getFormattedName(0)
                             }.ifEmpty { plugin.langYml.getFormattedString("no-required") },
-                            "tradeable" to this.isObtainableThroughTrading.parseLangOption("tradeable"),
+                            "tradeable" to this.isObtainableThroughTrading.parseYesOrNo(),
                             "discoverable" to this.isObtainableThroughDiscovery.parseDiscoverable(),
                             "discoverable_chests" to this.isObtainableThrough(DiscoveryType.CHESTS).parseDiscoverable(DiscoveryType.CHESTS),
                             "discoverable_fishing" to this.isObtainableThrough(DiscoveryType.FISHING).parseDiscoverable(DiscoveryType.FISHING),
                             "discoverable_mob_drops" to this.isObtainableThrough(DiscoveryType.MOB_DROPS).parseDiscoverable(DiscoveryType.MOB_DROPS),
                             "discoverable_raids" to this.isObtainableThrough(DiscoveryType.RAIDS).parseDiscoverable(DiscoveryType.RAIDS),
-                            "enchantable" to this.isObtainableThroughEnchanting.parseLangOption("enchantable"),
-                            "drag_and_drop" to this.isDragAndDropEnabled().parseLangOption("drag-and-drop")
+                            "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo(),
+                            "drag_and_drop" to this.isDragAndDropEnabled().parseYesOrNo()
                         )
                     )
                         .formatEco()
                         .flatMap {
                             it.lineWrap(32, true)
                         }
-
+                }
+                .build()
                 .fast()
                 .apply {
                     plugin.getProxy(HideStoredEnchantsProxy::class.java).hideStoredEnchants(this)
