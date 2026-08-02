@@ -29,10 +29,10 @@ import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
 import com.willfp.ecoenchants.display.RaritySorter
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
-import com.willfp.ecoenchants.experience.Favorites
-import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.dragdrop.isDragAndDropEnabled
 import com.willfp.ecoenchants.enchant.DiscoveryType
+import com.willfp.ecoenchants.experience.Favorites
+import com.willfp.ecoenchants.experience.PlayerExperience
 import com.willfp.ecoenchants.plugin
 import com.willfp.ecoenchants.rarity.EnchantmentRarities
 import com.willfp.ecoenchants.target.EnchantmentTargets.applicableEnchantments
