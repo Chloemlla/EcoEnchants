@@ -5,6 +5,7 @@ import com.willfp.eco.core.anvil.AnvilSettings
 import com.willfp.eco.core.bstats.EcoMetricsChart
 import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.eco.core.display.DisplayModule
+import com.willfp.eco.core.dragdrop.DragAndDropHandlers
 import com.willfp.eco.core.integrations.IntegrationLoader
 import com.willfp.ecoenchants.backend.OnlineLicenseGate
 import com.willfp.ecoenchants.backend.RemoteOperationsClient
@@ -15,9 +16,11 @@ import com.willfp.ecoenchants.config.RarityYml
 import com.willfp.ecoenchants.config.TargetsYml
 import com.willfp.ecoenchants.config.TypesYml
 import com.willfp.ecoenchants.config.VanillaEnchantsYml
+import com.willfp.ecoenchants.display.DescriptionEnabledPlaceholder
 import com.willfp.ecoenchants.display.DisplayCache
 import com.willfp.ecoenchants.display.EnchantDisplay
 import com.willfp.ecoenchants.display.EnchantSorter
+import com.willfp.ecoenchants.dragdrop.EcoEnchantBookDragAndDropHandler
 import com.willfp.ecoenchants.enchant.EcoEnchantLevel
 import com.willfp.ecoenchants.enchant.EcoEnchant
 import com.willfp.ecoenchants.enchant.EcoEnchants
@@ -127,7 +130,11 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
             )
         }
 
+        DescriptionEnabledPlaceholder.register()
+
         registerAnvilHandler()
+
+        DragAndDropHandlers.register(EcoEnchantBookDragAndDropHandler)
     }
 
     override fun handleAfterLoad() {
@@ -162,6 +169,7 @@ class EcoEnchantsPlugin : LibreforgePlugin() {
     override fun handleDisable() {
         RemoteOperationsClient.stop()
         RuntimeTelemetry.stop()
+        DragAndDropHandlers.unregisterAll("ecoenchants")
     }
 
     private fun registerAnvilHandler() {
