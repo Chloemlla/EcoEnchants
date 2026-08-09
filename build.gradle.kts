@@ -230,6 +230,9 @@ publishing {
         // maven-releases (served publicly via the maven-public group): the API jar
         create<MavenPublication>("release") {
             artifactId = rootProject.name
+            // Keep the Java component so the generated POM retains the dependency
+            // metadata downstream consumers need when compiling against the API.
+            from(components["java"])
         }
     }
     repositories {
@@ -252,8 +255,10 @@ publishing {
     }
 }
 
-// Neither publication is attached to a software component, so only the single jar
-// and its pom are published - no sources, javadoc, or classified variants.
+// The release publication carries the Java component's dependency metadata into the
+// POM, but its main artifact is swapped below for the core-plugin API jar - so only
+// that single jar (plus the POM) is published, no sources, javadoc, or classified
+// variants.
 afterEvaluate {
     publishing.publications.named<MavenPublication>("private") {
         artifact(tasks.named("libreforgeJar"))
@@ -264,6 +269,8 @@ afterEvaluate {
     // relocates kotlin.* into com.willfp.eco.libs.kotlin, which rewrites @kotlin.Metadata
     // and makes the whole API read as Java. eco publishes its API the same way.
     publishing.publications.named<MavenPublication>("release") {
+        // Drop the component's default (root) jar; publish the core-plugin API jar instead.
+        artifacts.removeIf { it.classifier.isNullOrEmpty() && it.extension == "jar" }
         artifact(project(":eco-core:core-plugin").tasks.named<Jar>("jar")) {
             classifier = ""
         }
