@@ -390,8 +390,6 @@ disabled: "&c关闭 / Disabled"
 no-conflicts: "无冲突 / No Conflicts"
 all-conflicts: "与所有其他附魔冲突 / All Other Enchantments"
 no-required: "无前置 / No Requirements"
-<<<<<<< HEAD
-=======
 
 discoverable:
   "true": "&a是 / Yes"
@@ -408,4 +406,3 @@ discoverable:
   raids:
     "true": "&a是 / Yes"
     "false": "&c否 / No"
->>>>>>> origin/advanced
