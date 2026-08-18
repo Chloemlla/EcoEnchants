@@ -77,6 +77,7 @@ private fun fakeEnchant(
         override val enchantment: Enchantment get() = throw UnsupportedOperationException("not used in these tests")
         override val rawDisplayName: String = "fake"
         override val type: EnchantmentType get() = throw UnsupportedOperationException("not used in these tests")
+        override val nameTranslationKey: String? = null
         override val enchantmentRarity: EnchantmentRarity get() = throw UnsupportedOperationException("not used in these tests")
     }
 }
