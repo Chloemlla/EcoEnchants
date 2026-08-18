@@ -12,7 +12,7 @@ There's a long list of reasons why, but chief among them is how the enchants are
 
 On top of that, **you can create your own custom enchantments with zero coding knowledge.** Just make them as you want, to give your server the ultimate unique feel and customize everything to be absolutely perfect. And if you don't like creating them yourself, **you can download community-made enchantments from the [online config explorer](https://lrcdb.auxilor.io).**
 
-EcoEnchants is also completely open-source. Many *other* enchantment plugins have extremely poor code and tend to obfuscate their plugins and try to prevent you from actually owning the plugin, instead treating you like you're borrowing it from them, with license checkers and enterprise licenses that restrict your freedom to use things how you want. **EcoEnchants will never have licenses, obfuscation, or anything like that.** The source code is public and open, and you can find it on [GitHub](https://github.com/Auxilor/EcoEnchants).
+EcoEnchants is distributed as a closed-source commercial plugin. Commercial builds require an online license verification during startup before the core runtime is enabled. The license check is intentionally narrow: it verifies the license key, installation ID, plugin/server version, Java version, channel, online-mode, and optionally server name and build fingerprint. It does not collect player UUIDs, player IPs, chat, economy data, inventories, coordinates, permissions, or world file fingerprints.
 
 EcoEnchants also doesn't fill your server with random clutter that you don't want. It was built out of frustration at the state of the most popular plugins at the time, filled with meaningless features and built around 1.8 PvP servers, which leads to bad performance, a bad user experience, and a bad developer experience too. Because it's built to feel like an extension of vanilla rather than a whole new system with the same name, your players will immediately understand it.
 
@@ -23,4 +23,6 @@ EcoEnchants also doesn't fill your server with random clutter that you don't wan
 - **The Gameplay:** how [types, rarity, obtaining, and targets](the-gameplay) fit together.
 - **Make your own:** the [How to Make an Enchantment](how-to-make-a-custom-enchant) guide.
 - **Configure the plugin:** every option in the [Plugin Config](plugin-config).
+- **Improve player guidance:** [Player Experience Optimizations](player-experience-optimizations), automatic tips, guide commands, and GUI shortcuts.
+- **Backend integration:** the [Runtime Telemetry API](runtime-telemetry-api) contract for scheduled audit event reporting.
 - **Browse community enchantments:** the [online config explorer](https://lrcdb.auxilor.io).

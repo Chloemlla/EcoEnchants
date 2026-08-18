@@ -14,6 +14,7 @@ import com.willfp.ecoenchants.type.EnchantmentType
 import com.willfp.ecoenchants.type.EnchantmentTypes
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandSender
+import org.bukkit.util.StringUtil
 
 object CommandGiveRandomBook : PluginCommand(
     plugin,
@@ -26,6 +27,7 @@ object CommandGiveRandomBook : PluginCommand(
 
         if (playerName == null) {
             sender.sendMessage(plugin.langYml.getMessage("requires-player"))
+            sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
             return
         }
 
@@ -39,14 +41,42 @@ object CommandGiveRandomBook : PluginCommand(
         val filterName = args.getOrNull(1)
 
         val filter = if (filterName != null) {
-            EnchantmentTypes[filterName] ?: EnchantmentRarities[filterName]
+            val normalizedFilterName = filterName.lowercase()
+            EnchantmentTypes[normalizedFilterName] ?: EnchantmentRarities[normalizedFilterName] ?: run {
+                sender.sendMessage(plugin.langYml.getMessage("invalid-filter"))
+                sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
+                return
+            }
         } else null
 
-        val minLevel = args.getOrNull(2)?.toIntOrNull() ?: 1
-        val maxLevel = args.getOrNull(3)?.toIntOrNull() ?: Int.MAX_VALUE
+        val minLevel = args.getOrNull(2)?.toIntOrNull() ?: run {
+            if (args.size > 2) {
+                sender.sendMessage(plugin.langYml.getMessage("invalid-level"))
+                sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
+                return
+            }
+
+            1
+        }
+        val maxLevel = args.getOrNull(3)?.toIntOrNull() ?: run {
+            if (args.size > 3) {
+                sender.sendMessage(plugin.langYml.getMessage("invalid-level"))
+                sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
+                return
+            }
+
+            Int.MAX_VALUE
+        }
 
         if (minLevel > maxLevel) {
             sender.sendMessage(plugin.langYml.getMessage("invalid-levels"))
+            sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
+            return
+        }
+
+        if (minLevel < 1 || maxLevel < 1) {
+            sender.sendMessage(plugin.langYml.getMessage("invalid-book-levels"))
+            sender.sendMessage(plugin.langYml.getMessage("giverandombook-usage"))
             return
         }
 
@@ -82,8 +112,8 @@ object CommandGiveRandomBook : PluginCommand(
     }
 
     override fun tabComplete(sender: CommandSender, args: List<String>): List<String> {
-        // OfTeN wrote this - it's cursed, and I am *not* going to try refactor this.
-        return when (args.size) {
+        val completions = mutableListOf<String>()
+        val options = when (args.size) {
             1 -> Bukkit.getOnlinePlayers().map { it.name }
             2 -> (EnchantmentRarities.values().map { it.id } + EnchantmentTypes.values().map { it.id })
             3 -> (1..10).map { it.toString() }
@@ -95,5 +125,9 @@ object CommandGiveRandomBook : PluginCommand(
 
             else -> emptyList()
         }
+
+        StringUtil.copyPartialMatches(args.lastOrNull() ?: "", options, completions)
+        completions.sort()
+        return completions
     }
 }

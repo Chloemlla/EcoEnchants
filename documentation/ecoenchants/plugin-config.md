@@ -14,6 +14,145 @@ A few options note that they require a **server restart** rather than a reload, 
 ## Default config.yml
 
 ```yaml
+# Required online license check for closed-source commercial builds.
+# The plugin will disable itself during startup unless this check returns status "valid" or "trial".
+license:
+  key: ""
+  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+  channel: stable
+  timeout-ms: 3000
+  installation-id: ""
+  send-server-name: false
+  send-build-fingerprint: true
+  # Privacy boundary:
+  # - The startup check sends license key, installation ID, plugin/server version, Java version,
+  #   online-mode, channel, and optionally server name / build fingerprint.
+# - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
+#   coordinates, permissions, or world file fingerprints.
+
+# Developer-facing backend API communication tracing.
+# Keep disabled on production unless you are actively diagnosing backend issues.
+# Payload logging is separately gated and redacts known tokens, license keys, signatures,
+# secrets, and passwords before writing to the console.
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
+    max-payload-chars: 2048
+
+# Secure remote operations client for /api/ecoenchants/v1.
+# The plugin connects outbound to the licensed backend after startup verification succeeds.
+# It never exposes arbitrary shell execution; managed commands are hardcoded allowlist actions.
+remote-operations:
+  enabled: true
+  reconnect-min-seconds: 5
+  reconnect-max-seconds: 300
+
+  security:
+    # Reject remote operations over plain http/ws when enabled.
+    require-secure-transport: true
+
+    # HMAC protects registration, WebSocket handshakes, and inbound RPC messages
+    # from replayed or unsigned control traffic. If secret is blank, the plugin
+    # uses the activation/session token as the shared signing secret.
+    hmac:
+      enabled: true
+      require-signed-rpc: true
+      key-id: ""
+      secret: ""
+      max-clock-skew-seconds: 300
+
+    # Optional client certificate authentication for mTLS deployments.
+    # key-store should point to a PKCS12/JKS file readable by the server process.
+    mtls:
+      enabled: false
+      key-store: ""
+      key-store-password: ""
+      key-store-type: "PKCS12"
+
+  audit-log:
+    enabled: true
+    file: security-audit.log
+
+  # File operations are disabled by default because they can change server data.
+  # Enable only for servers that should be maintained from the backend console.
+  file-ops:
+    enabled: false
+    # Leave blank to infer the Minecraft server root from plugins/EcoEnchants.
+    server-root: ""
+    max-read-bytes: 1048576
+    max-write-bytes: 10485760
+    allow-permanent-delete: false
+
+  # Backup creation writes zip archives into plugins/EcoEnchants/backups.
+  # Restore defaults to staged mode; use apply mode only after reviewing the staged contents.
+  backups:
+    enabled: false
+    max-total-size-mb: 256
+
+# Server-side runtime telemetry and transparent compliance probes.
+# This records operational audit metadata for administrators. Raw IP addresses, full chat text,
+# and full inventory contents are not written unless explicitly enabled below.
+runtime-telemetry:
+  enabled: true
+
+  audit-log:
+    enabled: true
+    file: telemetry/audit.jsonl
+    max-file-size-mb: 10
+
+  remote-reporting:
+    enabled: true
+    api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+    endpoint: "/telemetry/events"
+    interval-ticks: 1200
+    batch-size: 100
+    max-queued-events: 5000
+    timeout-ms: 3000
+    require-activation-token: true
+
+  privacy:
+    hash-salt: ""
+    include-raw-network-addresses: false
+
+  identity:
+    enabled: true
+
+  movement:
+    enabled: true
+    sample-interval-ms: 1000
+    max-distance-per-sample: 24.0
+    max-blocks-per-second: 30.0
+    log-samples: false
+
+  state-delta:
+    enabled: true
+    include-inventory-summary: true
+
+  text:
+    enabled: true
+    capture-raw: false
+    log-all-metadata: false
+    log-command-root: true
+    log-matched-terms: true
+    risk-terms:
+      - dupe
+      - crash
+      - lag machine
+      - xray
+      - kill aura
+
+  environment-probe:
+    enabled: true
+    interval-ticks: 1200
+    redline-action: disable-plugin
+    denied-jvm-args:
+      - "-agentlib:jdwp"
+      - "-Xdebug"
+    block-java-agents: false
+    denied-env-vars: []
+    denied-system-properties: []
+
 # Options for enchanting items in the enchanting table
 enchanting-table:
   enabled: true # If custom enchantments should be available from enchanting tables

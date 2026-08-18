@@ -1,0 +1,14 @@
+{
+  "name": "ecoenchants-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vitepress build documentation",
+    "docs:dev": "vitepress dev documentation",
+    "docs:build": "npm run build",
+    "docs:preview": "vitepress preview documentation"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

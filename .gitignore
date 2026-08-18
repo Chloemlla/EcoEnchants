@@ -24,3 +24,7 @@ gradle-app.setting
 
 .kotlin
 .worktrees
+.vercel
+documentation/github-issues-fix-todo-2026-05-31.md
+documentation/github-issues-research-2026-05-31.md
+.codex/

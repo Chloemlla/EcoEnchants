@@ -1,0 +1,52 @@
+name: Docs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "documentation/**"
+      - "package.json"
+      - "vercel.json"
+      - ".github/workflows/docs.yml"
+  push:
+    branches:
+      - master
+      - advanced
+    paths:
+      - "documentation/**"
+      - "package.json"
+      - "vercel.json"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install docs dependencies
+        run: npm install
+
+      - name: Build VitePress docs
+        run: npm run build
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecoenchants-vitepress-docs-${{ github.sha }}
+          path: documentation/.vitepress/dist
+          if-no-files-found: error
+          retention-days: 14

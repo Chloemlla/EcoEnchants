@@ -3,6 +3,148 @@
 # by Auxilor
 #
 
+# Required online license check for closed-source commercial builds.
+# The plugin will disable itself during startup unless this check returns status "valid" or "trial".
+license:
+  key: ""
+  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+  channel: stable
+  timeout-ms: 3000
+  installation-id: ""
+  send-server-name: false
+  send-build-fingerprint: true
+  # Privacy boundary:
+  # - The startup check sends license key, installation ID, plugin/server version, Java version,
+  #   online-mode, channel, and optionally server name / build fingerprint.
+  # - It does not collect player UUIDs, player IPs, chat, economy data, inventories,
+  #   coordinates, permissions, or world file fingerprints.
+
+# Developer-facing backend API communication tracing.
+# Keep disabled on production unless you are actively diagnosing backend issues.
+# Payload logging is separately gated and redacts known tokens, license keys, signatures,
+# secrets, and passwords before writing to the console.
+backend-api:
+  logging:
+    verbose: false
+    include-payloads: false
+    max-payload-chars: 2048
+
+# Secure remote operations client for /api/ecoenchants/v1.
+# The plugin connects outbound to the licensed backend after startup verification succeeds.
+# It never exposes arbitrary shell execution; managed commands are hardcoded allowlist actions.
+remote-operations:
+  enabled: true
+  reconnect-min-seconds: 5
+  reconnect-max-seconds: 300
+
+  security:
+    # Reject remote operations over plain http/ws when enabled.
+    require-secure-transport: true
+
+    # HMAC protects registration, WebSocket handshakes, and inbound RPC messages
+    # from replayed or unsigned control traffic. If secret is blank, the plugin
+    # uses the activation/session token as the shared signing secret.
+    hmac:
+      enabled: true
+      require-signed-rpc: true
+      key-id: ""
+      secret: ""
+      max-clock-skew-seconds: 300
+
+    # Optional client certificate authentication for mTLS deployments.
+    # key-store should point to a PKCS12/JKS file readable by the server process.
+    mtls:
+      enabled: false
+      key-store: ""
+      key-store-password: ""
+      key-store-type: "PKCS12"
+
+  audit-log:
+    enabled: true
+    file: security-audit.log
+
+  # File operations are disabled by default because they can change server data.
+  # Enable only for servers that should be maintained from the backend console.
+  file-ops:
+    enabled: false
+    # Leave blank to infer the Minecraft server root from plugins/EcoEnchants.
+    server-root: ""
+    max-read-bytes: 1048576
+    max-write-bytes: 10485760
+    allow-permanent-delete: false
+
+  # Backup creation writes zip archives into plugins/EcoEnchants/backups.
+  # Restore defaults to staged mode; use apply mode only after reviewing the staged contents.
+  backups:
+    enabled: false
+    max-total-size-mb: 256
+
+# Server-side runtime telemetry and transparent compliance probes.
+# This records operational audit metadata for administrators. Raw IP addresses, full chat text,
+# and full inventory contents are not written unless explicitly enabled below.
+runtime-telemetry:
+  enabled: true
+
+  audit-log:
+    enabled: true
+    file: telemetry/audit.jsonl
+    max-file-size-mb: 10
+
+  remote-reporting:
+    enabled: true
+    api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+    endpoint: "/telemetry/events"
+    interval-ticks: 1200
+    batch-size: 100
+    max-queued-events: 5000
+    timeout-ms: 3000
+    require-activation-token: true
+
+  privacy:
+    # Optional salt for stable local hashes. Leave blank to derive one from this server runtime.
+    hash-salt: ""
+    include-raw-network-addresses: false
+
+  identity:
+    enabled: true
+
+  movement:
+    enabled: true
+    sample-interval-ms: 1000
+    max-distance-per-sample: 24.0
+    max-blocks-per-second: 30.0
+    log-samples: false
+
+  state-delta:
+    enabled: true
+    include-inventory-summary: true
+
+  text:
+    enabled: true
+    capture-raw: false
+    log-all-metadata: false
+    log-command-root: true
+    log-matched-terms: true
+    risk-terms:
+      - dupe
+      - crash
+      - lag machine
+      - xray
+      - kill aura
+
+  # Transparent process-level policy check. This does not hide control flow, inspect memory,
+  # or intentionally crash the JVM; redlines disable EcoEnchants when configured to do so.
+  environment-probe:
+    enabled: true
+    interval-ticks: 1200
+    redline-action: disable-plugin # Options: disable-plugin, log-only
+    denied-jvm-args:
+      - "-agentlib:jdwp"
+      - "-Xdebug"
+    block-java-agents: false
+    denied-env-vars: []
+    denied-system-properties: []
+
 # Options for enchanting items in the enchanting table
 enchanting-table:
   enabled: true # If custom enchantments should be available from enchanting tables
@@ -87,6 +229,28 @@ display:
 
   require-enchantable: true # If EcoEnchants should not display on non-enchantable items.
 
+# Player-facing guidance, convenience messages, and lightweight experience analytics.
+player-experience:
+  auto-hints:
+    enabled: true
+    cooldown-seconds: 90
+    once-per-player: true
+    on-first-join: true
+    on-browser-open: true
+    on-empty-results: true
+    on-filter-change: true
+    on-hold-enchantable: true # Action-bar tip when holding an enchantable item
+
+  # /ecoenchants search options
+  search:
+    max-results: 15 # Max clickable results shown per search
+
+  sounds:
+    invalid-click:
+      sound: block.note_block.bass
+      sound-volume: 0.6
+      sound-pitch: 0.7
+
 # Options for the /enchantinfo GUI
 enchantinfo:
   rows: 3 # How many rows for the GUI
@@ -101,22 +265,24 @@ enchantinfo:
     row: 2
     column: 5
     show-max-level: true # Whether the book should be the max level or level 1
-    lore: # The description is automatically appended
-      - ""
-      - "&fMax Level: &a%max_level%"
-      - "&fRarity: &a%rarity%"
-      - "&fApplicable to: &a%targets%"
-      - "&fConflicts with: &a%conflicts%"
-      - "&fRequires: &a%required%"
-      - ""
-      - "&fTradeable: &a%tradeable%"
-      - "&fDiscoverable: &a%discoverable%"
-      - "&fDiscoverable (Chests): &a%discoverable_chests%"
-      - "&fDiscoverable (Fishing): &a%discoverable_fishing%"
-      - "&fDiscoverable (Mob Drops): &a%discoverable_mob_drops%"
-      - "&fDiscoverable (Raids): &a%discoverable_raids%"
-      - "&fEnchantable: &a%enchantable%"
-      - "&fDrag and Drop: &a%drag_and_drop%"
+    lore-key: gui.enchantinfo.item.lore # The description is automatically appended
+
+  # Click-to-bookmark button. Toggles the enchantment in the player's favorites.
+  favorite:
+    enabled: true
+    row: 1
+    column: 5
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 1.2
+    add:
+      item: gray_dye
+      name-key: gui.enchantinfo.favorite.add.name
+      lore-key: gui.enchantinfo.favorite.add.lore
+    remove:
+      item: yellow_dye
+      name-key: gui.enchantinfo.favorite.remove.name
+      lore-key: gui.enchantinfo.favorite.remove.lore
 
   # Custom GUI slots; see here for a how-to: https://hub.auxilor.io/wiki/eco/pages#custom-gui-slots
   custom-slots: [ ]
@@ -124,7 +290,7 @@ enchantinfo:
 # Options for the enchant GUI.
 enchant-gui:
   rows: 6 # How many rows to have in the GUI
-  title: "Enchant GUI &7(%page%/%max_page%)" # The title of the GUI
+  title-key: gui.enchant.title # The title of the GUI
 
   mask: # The background material
     items:
@@ -140,14 +306,20 @@ enchant-gui:
   # Empty item to show when there is no enchanted book
   empty-item: gray_stained_glass_pane name:""
 
+  # Item shown in the center of the enchantment area when there are no results.
+  empty-results:
+    item: barrier
+    name-key: gui.enchant.empty-results.name
+    lore-key: gui.enchant.empty-results.lore
+    group-lore-key: gui.enchant.empty-results.group-lore
+    with-item-lore-key: gui.enchant.empty-results.with-item-lore
+    with-item-and-group-lore-key: gui.enchant.empty-results.with-item-and-group-lore
+
   # Options for the info item
   info:
-    item: player_head name:"&aHow do I use this?" texture:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0=
-    lore:
-      - "&fPlace an item in the slot at the top,"
-      - "&fand all the enchantments you can add"
-      - "&fto to this item will show up in the"
-      - "&farea below!"
+    item: player_head texture:eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjcwNWZkOTRhMGM0MzE5MjdmYjRlNjM5YjBmY2ZiNDk3MTdlNDEyMjg1YTAyYjQzOWUwMTEyZGEyMmIyZTJlYyJ9fX0=
+    name-key: gui.enchant.info.name
+    lore-key: gui.enchant.info.lore
     row: 1
     column: 9
 
@@ -163,22 +335,30 @@ enchant-gui:
       pitch: 1.0
       volume: 1.0
     forwards:
-      item: arrow name:"&fNext Page" # The item. Will not show if on the last page.
-      item-inactive: gray_dye name:"&7Next Page" # The item shown on the last page
+      item: arrow # Will not show if on the last page.
+      name-key: gui.enchant.page-next.name
+      lore-key: gui.enchant.page-next.lore
       row: 6
       column: 6
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
     backwards:
-      item: arrow name:"&fPrevious Page" # The item. Will not show if on the first page.
-      item-inactive: gray_dye name:"&7Previous Page" # The item shown on the first page
+      item: arrow # Will not show if on the first page.
+      name-key: gui.enchant.page-previous.name
+      lore-key: gui.enchant.page-previous.lore
       row: 6
       column: 4
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
 
   # Optional close button for the enchant GUI
   close-button:
     enabled: true
     item: barrier
-    name: "&cClose"
-    lore: [ ]
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
     row: 6
     column: 5
 
@@ -192,6 +372,94 @@ enchant-gui:
   # Custom GUI slots; see here for a how-to: https://hub.auxilor.io/wiki/eco/pages#custom-gui-slots
   custom-slots: [ ]
 
+  # Admin-only utility entry point. Only players with at least one admin tool permission see it.
+  admin-tools:
+    enabled: true
+    item: command_block
+    name-key: gui.enchant.admin-tools.name
+    lore-key: gui.enchant.admin-tools.lore
+    row: 1
+    column: 1
+
+  # Optional convenience filters. These cycle through available values on click.
+  filters:
+    type:
+      enabled: true
+      item: compass
+      name-key: gui.enchant.filters.type.name
+      lore-key: gui.enchant.filters.type.lore
+      row: 1
+      column: 2
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    rarity:
+      enabled: true
+      item: emerald
+      name-key: gui.enchant.filters.rarity.name
+      lore-key: gui.enchant.filters.rarity.lore
+      row: 1
+      column: 3
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    target:
+      enabled: true
+      item: anvil
+      name-key: gui.enchant.filters.target.name
+      lore-key: gui.enchant.filters.target.lore
+      row: 1
+      column: 4
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    compatible-only:
+      enabled: true
+      default-enabled: true
+      item: lime_dye
+      name-key: gui.enchant.filters.compatible-only.name
+      lore-key: gui.enchant.filters.compatible-only.lore
+      row: 1
+      column: 8
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+    favorites-only:
+      enabled: true
+      item: nether_star
+      name-key: gui.enchant.filters.favorites-only.name
+      lore-key: gui.enchant.filters.favorites-only.lore
+      row: 1
+      column: 7
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.1
+
+  # Cycles the browser's sort order for the viewing player (name / rarity / max level).
+  sort:
+    enabled: true
+    item: hopper
+    name-key: gui.enchant.sort.name
+    lore-key: gui.enchant.sort.lore
+    row: 2
+    column: 5
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 1.0
+
+  # Shows chat hints about which enchantments conflict with the item in the captive slot.
+  conflict-view:
+    enabled: true
+    item: knowledge_book
+    name-key: gui.enchant.conflict-view.name
+    lore-key: gui.enchant.conflict-view.lore
+    row: 1
+    column: 6
+    max-lines: 8
+    sound: ui.button.click
+    sound-volume: 1.0
+    sound-pitch: 0.9
+
   # If enabled, /enchant opens a group selection menu first, grouping enchantments
   # by the group-by setting. If disabled, /enchant opens the flat enchantment list (current behavior).
   grouped: false
@@ -204,15 +472,16 @@ enchant-gui:
   # Only shown when grouped is true.
   back-button:
     enabled: true
-    item: arrow name:"&fBack to Groups"
-    lore: []
+    item: arrow
+    name-key: gui.common.back-to-groups.name
+    lore-key: gui.common.back-to-groups.lore
     row: 6
     column: 1
 
 # Options for the group selection GUI (only used when enchant-gui.grouped is true)
 group-gui:
   rows: 3
-  title: "Enchantment Groups"
+  title-key: gui.group.title
 
   mask:
     items:
@@ -222,6 +491,31 @@ group-gui:
       - "100000001"
       - "111111111"
 
+  admin-tools:
+    enabled: true
+    item: command_block
+    name-key: gui.enchant.admin-tools.name
+    lore-key: gui.enchant.admin-tools.lore
+    row: 1
+    column: 9
+
+  # Optional entry to browse every enchantment without applying a group filter.
+  all-enchants:
+    enabled: true
+    item: book
+    name-key: gui.group.all.name
+    lore-key: gui.group.all.lore
+    row: 2
+    column: 5
+
+  close-button:
+    enabled: true
+    item: barrier
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
+    row: 3
+    column: 5
+
   # Each group must have a unique id matching an entry from the file corresponding
   # to the group-by setting:
   #   group-by: type   -> IDs from types.yml   (normal, spell, special, curse)
@@ -230,31 +524,85 @@ group-gui:
   # Groups with unrecognized IDs are silently ignored.
   groups:
     - id: normal
-      item: enchanted_book name:"&7Normal Enchantments"
-      lore:
-        - "&fClick to browse normal enchantments"
+      item: enchanted_book
+      name-key: gui.group.normal.name
+      lore-key: gui.group.normal.lore
       row: 2
       column: 2
     - id: spell
-      item: enchanted_book name:"<gradient:#0575E6:#1E3FBA>Spell Enchantments"
-      lore:
-        - "&fClick to browse spell enchantments"
+      item: enchanted_book
+      name-key: gui.group.spell.name
+      lore-key: gui.group.spell.lore
       row: 2
       column: 4
     - id: special
-      item: enchanted_book name:"<gradient:#FB57EC:#EF1DEC>Special Enchantments"
-      lore:
-        - "&fClick to browse special enchantments"
+      item: enchanted_book
+      name-key: gui.group.special.name
+      lore-key: gui.group.special.lore
       row: 2
       column: 6
     - id: curse
-      item: enchanted_book name:"&cCurse Enchantments"
-      lore:
-        - "&fClick to browse curse enchantments"
+      item: enchanted_book
+      name-key: gui.group.curse.name
+      lore-key: gui.group.curse.lore
       row: 2
       column: 8
 
   # Custom GUI slots; see here for a how-to: https://hub.auxilor.io/wiki/eco/pages#custom-gui-slots
+  custom-slots: []
+
+# Options for the admin utility GUI
+admin-gui:
+  enabled: true
+  rows: 3
+  title-key: gui.admin.title
+
+  mask:
+    items:
+      - black_stained_glass_pane
+    pattern:
+      - "111111111"
+      - "100010001"
+      - "111111111"
+
+  tools:
+    reload:
+      enabled: true
+      item: redstone
+      name-key: gui.admin.reload.name
+      lore-key: gui.admin.reload.lore
+      row: 2
+      column: 3
+      sound: ui.button.click
+      sound-volume: 1.0
+      sound-pitch: 1.0
+    random-book:
+      enabled: true
+      item: enchanted_book
+      name-key: gui.admin.random-book.name
+      lore-key: gui.admin.random-book.lore
+      row: 2
+      column: 7
+      sound: entity.player.levelup
+      sound-volume: 1.0
+      sound-pitch: 1.2
+
+  back-button:
+    enabled: true
+    item: arrow
+    name-key: gui.common.back.name
+    lore-key: gui.common.back.lore
+    row: 3
+    column: 4
+
+  close-button:
+    enabled: true
+    item: barrier
+    name-key: gui.common.close.name
+    lore-key: gui.common.close.lore
+    row: 3
+    column: 6
+
   custom-slots: []
 
 # Options for converting lore-based enchants (from other plugins) with EcoEnchants enchantments

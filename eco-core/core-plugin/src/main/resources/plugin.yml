@@ -5,6 +5,7 @@ api-version: 1.21.8
 authors: [ Auxilor ]
 website: willfp.com
 load: STARTUP
+folia-supported: true
 depend:
   - eco
 softdepend:
@@ -14,13 +15,14 @@ softdepend:
 
 commands:
   ecoenchants:
-    description: Base Command
+    description: Main EcoEnchants command and help
     permission: ecoenchants.command.ecoenchants
+    aliases: [ ee ]
   enchantinfo:
-    description: Show info about an enchant
+    description: Show detailed information about an enchantment
     permission: ecoenchants.command.enchantinfo
   enchant:
-    description: Enchants an item
+    description: Add or remove enchantments on a held item
     permission: ecoenchants.command.enchant
 
 permissions:
@@ -38,10 +40,15 @@ permissions:
       ecoenchants.command.reload: true
       ecoenchants.command.ecoenchants: true
       ecoenchants.command.toggledescriptions: true
+      ecoenchants.command.guide: true
+      ecoenchants.command.experience: true
       ecoenchants.command.giverandombook: true
       ecoenchants.command.enchantinfo: true
       ecoenchants.command.gui: true
       ecoenchants.command.enchant: true
+      ecoenchants.command.services: true
+      ecoenchants.command.search: true
+      ecoenchants.command.favorites: true
   ecoenchants.anvil.*:
     description: All anvil perks
     default: op
@@ -63,6 +70,12 @@ permissions:
   ecoenchants.command.toggledescriptions:
     description: Allows the use of /ecoenchants toggledescriptions.
     default: true
+  ecoenchants.command.guide:
+    description: Allows the use of /ecoenchants guide.
+    default: true
+  ecoenchants.command.experience:
+    description: Allows checking player experience hint status and empty-result stats.
+    default: op
   ecoenchants.command.enchantinfo:
     description: Allows the use of /enchantinfo.
     default: true
@@ -72,3 +85,12 @@ permissions:
   ecoenchants.command.enchant:
     description: Allows the use of /enchant.
     default: op
+  ecoenchants.command.services:
+    description: Allows checking the EcoEnchants online license gate status.
+    default: op
+  ecoenchants.command.search:
+    description: Allows the use of /ecoenchants search.
+    default: true
+  ecoenchants.command.favorites:
+    description: Allows the use of /ecoenchants favorites.
+    default: true
