@@ -16,6 +16,7 @@ version = findProperty("version")!!
 // versions in gradle.properties; otherwise dev builds track the latest master snapshot.
 val useGradleVersions = findProperty("useGradleVersions") == "true"
 val libreforgeVersion = if (useGradleVersions) findProperty("libreforge-version") else "dev-SNAPSHOT"
+val ecoApiVersion = findProperty("eco-api-version")
 val ecoVersion = findProperty("eco-version")
 val proguardVersion = findProperty("proguard-version") ?: "7.9.1"
 val vineflowerVersion = findProperty("vineflower-version") ?: "1.12.0"
@@ -357,6 +358,7 @@ allprojects {
                 expand(
                     "version" to project.version,
                     "libreforgeVersion" to libreforgeVersion!!,
+                    "ecoApiVersion" to ecoApiVersion!!,
                     "pluginName" to rootProject.name
                 )
             }
