@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vitepress build documentation",
-    "docs:dev": "vitepress dev documentation",
+    "build": "vitepress build ecohub",
+    "docs:dev": "vitepress dev ecohub",
     "docs:build": "npm run build",
-    "docs:preview": "vitepress preview documentation"
+    "docs:preview": "vitepress preview ecohub"
   },
   "devDependencies": {
     "vitepress": "^1.6.4"

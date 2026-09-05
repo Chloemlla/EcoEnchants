@@ -3,5 +3,5 @@
   "framework": "vitepress",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "outputDirectory": "documentation/.vitepress/dist"
+  "outputDirectory": "ecohub/.vitepress/dist"
 }

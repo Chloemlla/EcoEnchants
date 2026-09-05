@@ -97,7 +97,7 @@ export default defineConfig({
       label: '本页目录'
     },
     editLink: {
-      pattern: 'https://github.com/Chloemlla/EcoEnchants/edit/advanced/documentation/:path',
+      pattern: 'https://github.com/Chloemlla/EcoEnchants/edit/advanced/ecohub/:path',
       text: '在 GitHub 编辑此页'
     },
     socialLinks: [

@@ -12,9 +12,9 @@
 | Root Directory | `./` |
 | Install Command | `npm install` |
 | Build Command | `npm run build` |
-| Output Directory | `documentation/.vitepress/dist` |
+| Output Directory | `ecohub/.vitepress/dist` |
 
-Vercel 的 VitePress 默认示例通常使用 `docs/.vitepress/dist`，但本仓库的文档目录是 `documentation`，因此输出目录需要使用 `documentation/.vitepress/dist`。这些值与 `.github/workflows/docs.yml` 中的文档构建流程保持一致。
+Vercel 的 VitePress 默认示例通常使用 `docs/.vitepress/dist`，但本仓库的文档目录是 `ecohub`，因此输出目录需要使用 `ecohub/.vitepress/dist`。这些值与 `.github/workflows/docs.yml` 中的文档构建流程保持一致。
 
 ## Node.js 版本
 
@@ -22,7 +22,7 @@ GitHub Actions 文档构建使用 Node.js 22。为了保持 Vercel 与 CI 一致
 
 ## 自动部署
 
-Vercel 连接仓库后，会在推送到启用的生产分支时自动部署生产环境，并为 Pull Request 创建预览部署。文档源码位于 `documentation`，构建产物由 VitePress 写入 `documentation/.vitepress/dist`。
+Vercel 连接仓库后，会在推送到启用的生产分支时自动部署生产环境，并为 Pull Request 创建预览部署。文档源码位于 `ecohub`，构建产物由 VitePress 写入 `ecohub/.vitepress/dist`。
 
 ## 验证路径
 
