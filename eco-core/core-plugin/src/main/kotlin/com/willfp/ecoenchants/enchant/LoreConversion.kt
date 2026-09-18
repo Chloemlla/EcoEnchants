@@ -101,6 +101,10 @@ object LoreConversion : Listener {
             matchedLines.add(line)
         }
 
+        // Nothing to convert - writing the meta/lore back would still rewrite the item.
+        if (toAdd.isEmpty()) {
+            return
+        }
 
         if (toAdd.isEmpty()) {
             return
