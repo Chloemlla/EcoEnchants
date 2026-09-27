@@ -34,7 +34,7 @@ advanced 分支默认更偏“商业版 + 后端可接入”的形态：
 | 配置 | 默认 | 影响 |
 | --- | --- | --- |
 | `license.key` | 空 | 不填 key 时授权校验失败，核心运行时不会启用。 |
-| `license.api-url` | `https://tts.chloemlla.com/api/ecoenchants/v1` | 授权、远程运维和遥测默认后端。 |
+| `license.api-url` | `https://chloemlla.com/api/ecoenchants/v1` | 授权、远程运维和遥测默认后端。 |
 | `backend-api.logging.verbose` | false | 默认不打印后端 API 通信追踪，排障时临时开启。 |
 | `backend-api.logging.include-payloads` | false | 默认不打印 payload，深度排障时才短期开启。 |
 | `remote-operations.enabled` | true | 授权成功且后端返回 token 后尝试注册远程运维实例。 |

@@ -28,7 +28,7 @@
 ```yaml
 license:
   key: ""
-  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+  api-url: "https://chloemlla.com/api/ecoenchants/v1"
   channel: stable
   timeout-ms: 3000
   installation-id: ""

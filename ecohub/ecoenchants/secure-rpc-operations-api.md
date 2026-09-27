@@ -30,9 +30,9 @@ sidebar_position: 10
 
 ## 2. 基础约定
 
-- Base URL: `https://tts.chloemlla.com/api/ecoenchants`
+- Base URL: `https://chloemlla.com/api/ecoenchants`
 - API version: `/v1`
-- WebSocket RPC: `wss://tts.chloemlla.com/api/ecoenchants/v1/rpc/connect`
+- WebSocket RPC: `wss://chloemlla.com/api/ecoenchants/v1/rpc/connect`
 - Content-Type: `application/json; charset=utf-8`
 - 所有时间使用 ISO-8601 UTC，例如 `2026-06-05T08:00:00Z`。
 - 所有写入接口必须支持 `Idempotency-Key`。
@@ -158,7 +158,7 @@ RPC
 {
   "requestId": "req_01JZ0000000000000000000000",
   "instanceId": "ins_01JZ0000000000000000000000",
-  "rpcUrl": "wss://tts.chloemlla.com/api/ecoenchants/v1/rpc/connect",
+  "rpcUrl": "wss://chloemlla.com/api/ecoenchants/v1/rpc/connect",
   "sessionToken": "short-lived-token",
   "sessionExpiresAt": "2026-06-05T09:00:00Z",
   "policyVersion": "pol_2026_06_05"

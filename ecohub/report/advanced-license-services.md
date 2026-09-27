@@ -9,7 +9,7 @@
 ```yaml
 license:
   key: ""
-  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+  api-url: "https://chloemlla.com/api/ecoenchants/v1"
   channel: stable
   timeout-ms: 3000
   installation-id: ""
@@ -33,9 +33,9 @@ license:
 
 | 输入 | 实际用途 |
 | --- | --- |
-| `https://tts.chloemlla.com` | 补成 `https://tts.chloemlla.com/api/ecoenchants/v1` |
-| `https://tts.chloemlla.com/api/ecoenchants` | 补成 versioned API |
-| `https://tts.chloemlla.com/api/ecoenchants/v1` | 原样作为 versioned API |
+| `https://chloemlla.com` | 补成 `https://chloemlla.com/api/ecoenchants/v1` |
+| `https://chloemlla.com/api/ecoenchants` | 补成 versioned API |
+| `https://chloemlla.com/api/ecoenchants/v1` | 原样作为 versioned API |
 | 重复粘贴的绝对 URL | 尝试折叠成最后一个有效绝对 URL |
 
 仍然建议直接填写完整默认格式，减少排查成本。
@@ -79,7 +79,7 @@ license:
 ```yaml
 license:
   key: "替换为授权 key"
-  api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+  api-url: "https://chloemlla.com/api/ecoenchants/v1"
   channel: stable
   timeout-ms: 3000
   send-server-name: false

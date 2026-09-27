@@ -49,7 +49,7 @@ runtime-telemetry:
 runtime-telemetry:
   remote-reporting:
     enabled: true
-    api-url: "https://tts.chloemlla.com/api/ecoenchants/v1"
+    api-url: "https://chloemlla.com/api/ecoenchants/v1"
     endpoint: "/telemetry/events"
     interval-ticks: 1200
     batch-size: 100
