@@ -45,9 +45,10 @@ object GrindstoneSupport : Listener {
             return
         }
 
+        val loc = inventory.location ?: return
+
         for (delay in 1L..3L) {
             plugin.scheduler.at(loc).runLater(delay) {
-                val loc = inventory.location ?: return@runLater
                 val orbs = loc.getNearbyEntitiesByType(ExperienceOrb::class.java, 3.0, 3.0, 3.0)
                     .filter { it.spawnReason == ExperienceOrb.SpawnReason.GRINDSTONE }
                 for (orb in orbs) {
