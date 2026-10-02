@@ -64,7 +64,8 @@ object VillagerSupport : Listener {
             multiplier /= reduction
 
             if (result.type == Material.ENCHANTED_BOOK) {
-                // Only allow one enchantment
+                // Book trades are intentionally limited to exactly one enchantment, so any
+                // enchantment the trade originally offered is discarded when a custom one rolls.
                 enchants.clear()
                 enchants[enchantment.enchantment] = level
                 break
@@ -75,7 +76,8 @@ object VillagerSupport : Listener {
 
         val meta = result.itemMeta
         if (meta is EnchantmentStorageMeta) {
-            // Remove existing enchants
+            // Cleared so the book ends up with only the enchantments rolled above, keeping
+            // book trades to a single enchantment (see the comment on enchants.clear() above)
             for (enchant in meta.storedEnchants.keys) {
                 meta.removeStoredEnchant(enchant)
             }

@@ -51,10 +51,14 @@ import java.util.UUID
 import kotlin.math.ceil
 
 object EnchantGUI : Listener {
+    // Rebuilt on reload while players on other threads may be opening them.
+    @Volatile
     private lateinit var menu: Menu
+    @Volatile
     private var groupMenu: Menu? = null
     private var adminMenu: Menu? = null
     private val enchantInfoMenus = EcoCache.builder<Pair<EcoEnchant, Int>, Menu>().build()
+    @Volatile
     private var allEnchantsSorted: List<EcoEnchant> = emptyList()
     private val returnedOnDisconnect = mutableSetOf<UUID>()
 
@@ -422,8 +426,11 @@ object EnchantGUI : Listener {
     fun openGUI(player: Player) {
         PlayerExperience.handleBrowserOpen(player)
 
+        // Snapshot: reload replaces both menus from another thread.
+        val groupMenu = groupMenu
+
         if (plugin.configYml.getBool("enchant-gui.grouped") && groupMenu != null) {
-            groupMenu!!.open(player)
+            groupMenu.open(player)
         } else {
             menu.open(player)
         }

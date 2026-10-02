@@ -13,6 +13,7 @@ import net.minecraft.core.Holder
 import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.Registries
+import com.willfp.eco.core.Prerequisite
 import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.CraftRegistry
@@ -21,6 +22,7 @@ import org.bukkit.craftbukkit.util.CraftNamespacedKey
 import org.bukkit.enchantments.Enchantment
 import org.jspecify.annotations.Nullable
 import java.lang.reflect.Modifier
+import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.function.BiFunction
 

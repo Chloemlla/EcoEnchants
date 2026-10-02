@@ -102,7 +102,7 @@ object EnchantmentReplenish : HardcodedEcoEnchant(
             data.age = 0
             val itemInHand = player.inventory.itemInMainHand.clone()
 
-            plugin.scheduler.run {
+            plugin.scheduler.at(block.location).run {
                 if (!block.type.isAir) {
                     return@run
                 }

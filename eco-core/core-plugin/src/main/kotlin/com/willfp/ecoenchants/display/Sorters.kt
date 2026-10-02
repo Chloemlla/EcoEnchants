@@ -13,6 +13,8 @@ object EnchantSorter {
     private var sortByRarity = false
     private var sortByType = false
     private var sortByLength = false
+    // Replaced rather than mutated: display runs on many threads at once.
+    @Volatile
     private var comparator: Comparator<DisplaySortEntry> = compareBy<DisplaySortEntry> { it.name }
 
     internal fun reload() {
@@ -78,6 +80,7 @@ private data class DisplaySortEntry(
 )
 
 object TypeSorter {
+    @Volatile
     private var typeOrder = emptyMap<EnchantmentType, Int>()
 
     fun update() {
@@ -92,6 +95,7 @@ object TypeSorter {
 }
 
 object RaritySorter {
+    @Volatile
     private var rarityOrder = emptyMap<EnchantmentRarity, Int>()
 
     fun update() {
