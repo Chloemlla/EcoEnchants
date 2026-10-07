@@ -14,6 +14,9 @@ A few options note that they require a **server restart** rather than a reload, 
 ## Default config.yml
 
 ```yaml
+# Worlds that EcoEnchants should be disabled in
+disabled-in-worlds: []
+
 # Required online license check for closed-source commercial builds.
 # The plugin will disable itself during startup unless this check returns status "valid" or "trial".
 license:
@@ -233,6 +236,10 @@ display:
     threshold: 5 # Above this amount, enchantment descriptions will not be shown
     word-wrap: 27 # Number of characters to have on each line
     format: "&8"
+
+  book-targets:
+    enabled: false # If enchanted books should show what each enchantment can be applied to
+    format: "&7Applies to: &e%targets%" # The line added under each enchantment on a book
 
   require-enchantable: true # If EcoEnchants should not display on non-enchantable items.
 
