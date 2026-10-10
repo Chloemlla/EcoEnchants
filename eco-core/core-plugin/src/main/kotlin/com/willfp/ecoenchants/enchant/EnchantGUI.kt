@@ -29,6 +29,7 @@ import com.willfp.ecoenchants.display.HideStoredEnchantsProxy
 import com.willfp.ecoenchants.display.RaritySorter
 import com.willfp.ecoenchants.display.getFormattedDescription
 import com.willfp.ecoenchants.display.getFormattedName
+import com.willfp.ecoenchants.dragdrop.dragAndDropPriceDisplay
 import com.willfp.ecoenchants.dragdrop.isDragAndDropEnabled
 import com.willfp.ecoenchants.enchant.DiscoveryType
 import com.willfp.ecoenchants.experience.Favorites
@@ -1406,7 +1407,12 @@ private fun EcoEnchant.getInformationSlot(player: Player, level: Int): Slot {
                             "discoverable_mob_drops" to this.isObtainableThrough(DiscoveryType.MOB_DROPS).parseDiscoverable(DiscoveryType.MOB_DROPS),
                             "discoverable_raids" to this.isObtainableThrough(DiscoveryType.RAIDS).parseDiscoverable(DiscoveryType.RAIDS),
                             "enchantable" to this.isObtainableThroughEnchanting.parseYesOrNo(),
-                            "drag_and_drop" to this.isDragAndDropEnabled().parseYesOrNo()
+                            "drag_and_drop" to this.isDragAndDropEnabled().parseYesOrNo(),
+                            "drag_and_drop_price" to if (this.isDragAndDropEnabled()) {
+                                this.dragAndDropPriceDisplay(player, level)
+                            } else {
+                                false.parseYesOrNo()
+                            }
                         )
                     )
                         .formatEco()
